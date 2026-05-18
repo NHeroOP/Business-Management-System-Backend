@@ -1,0 +1,51 @@
+{
+  "name": "business-management-system-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NHeroOP/Business-Management-System-Backend.git"
+  },
+  "keywords": [],
+  "author": "Neerav Gupta",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/NHeroOP/Business-Management-System-Backend/issues"
+  },
+  "homepage": "https://github.com/NHeroOP/Business-Management-System-Backend#readme",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^2.10.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.6.2",
+    "multer": "^2.1.1",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "resend": "^6.12.3"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/mongoose": "^5.11.96",
+    "@types/multer": "^2.1.0",
+    "@types/node": "^25.6.2",
+    "@types/passport": "^1.0.17",
+    "@types/passport-google-oauth20": "^2.0.17",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3"
+  }
+}
