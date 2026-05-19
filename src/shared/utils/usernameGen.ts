@@ -1,9 +1,6 @@
-import { User } from "../models/User.model.js";
+import { User } from "../../models/User.model.js";
 
-export const generateUsername = async (
-  fullName: string
-): Promise<string> => {
-
+export const generateUsername = async (fullName: string): Promise<string> => {
   // Normalize base username
   const baseUsername = fullName
     .toLowerCase()
@@ -12,10 +9,7 @@ export const generateUsername = async (
     .replace(/[^a-z0-9_]/g, "");
 
   // Escape regex special chars just in case
-  const escapedUsername = baseUsername.replace(
-    /[.*+?^${}()|[\]\\]/g,
-    "\\$&"
-  );
+  const escapedUsername = baseUsername.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
   // Find similar usernames
   const existingUsers = await User.find({
@@ -35,10 +29,7 @@ export const generateUsername = async (
   let maxSuffix = 0;
 
   for (const user of existingUsers) {
-
-    const match = user.username.match(
-      new RegExp(`^${escapedUsername}(\\d+)$`)
-    );
+    const match = user.username.match(new RegExp(`^${escapedUsername}(\\d+)$`));
 
     if (match) {
       const number = Number(match[1]);

@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { User } from "../models/User.model.js";
+import { User } from "../../models/User.model.js";
 import { generateUsername } from "../utils/usernameGen.js";
 
 passport.use(
@@ -38,7 +38,9 @@ passport.use(
           });
         }
 
-        user = await User.findById(user._id).select("-password -refreshToken -googleId");
+        user = await User.findById(user._id).select(
+          "-password -refreshToken -googleId",
+        );
         if (!user) {
           return done(new Error("User not found after creation"));
         }

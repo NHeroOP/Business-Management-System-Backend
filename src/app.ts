@@ -1,7 +1,7 @@
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import passport from "./config/passport.js"
+import passport from "./shared/config/passport.js";
 
 export const app = express();
 
@@ -30,7 +30,6 @@ app.use(express.static("public"));
 app.use(cookieParser());
 
 app.use(passport.initialize());
-
 
 import authRouter from "./routes/auth.route.js";
 

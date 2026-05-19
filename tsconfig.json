@@ -9,11 +9,8 @@
     // See also https://aka.ms/tsconfig/module
     "module": "nodenext",
     "target": "esnext",
-    "types": ["node", "express"], 
-    "typeRoots": [
-      "./node_modules/@types",
-      "./src/@types"
-    ],
+    "types": ["node", "express"],
+    "typeRoots": ["./node_modules/@types", "src/shared/@types"],
     "esModuleInterop": true,
     // For nodejs:
     // "lib": ["esnext"],
@@ -44,10 +41,7 @@
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
-  "include": [
-    "src/**/*",
-    "src/@types/**/*.d.ts" 
-  ]
+  "include": ["src/**/*", "src/shared/@types/**/*.d.ts"]
 }

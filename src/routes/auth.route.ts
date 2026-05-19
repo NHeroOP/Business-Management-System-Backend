@@ -1,30 +1,31 @@
 import { Router } from "express";
-import { googleAuth, loginUser, logoutUser, registerUser, sendEmail } from "../controllers/auth.controller.js";
+import {
+  googleAuth,
+  loginUser,
+  logoutUser,
+  registerUser,
+  sendEmail,
+} from "../controllers/auth.controller.js";
 
-import { upload } from "../middlewares/multer.middleware.js";
-import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { upload } from "../shared/middlewares/multer.middleware.js";
+import { verifyJWT } from "../shared/middlewares/auth.middleware.js";
 import passport from "passport";
-
 
 const router = Router();
 
-router.route("/register")
-  .post(upload.single("avatarUrl"), registerUser);
+router.route("/register").post(upload.single("avatarUrl"), registerUser);
 
-router.route("/login")
-  .post(loginUser);
+router.route("/login").post(loginUser);
 
-router.route("/logout")
-  .post(verifyJWT, logoutUser);
+router.route("/logout").post(verifyJWT, logoutUser);
 
-router.route("/send-email")
-  .post(sendEmail);
+router.route("/send-email").post(sendEmail);
 
 router.route("/google").get(
   passport.authenticate("google", {
     scope: ["profile", "email"],
     session: false,
-  })
+  }),
 );
 
 router.route("/google/callback").get(
@@ -33,8 +34,7 @@ router.route("/google/callback").get(
     session: false,
     failureMessage: "Failed to login with Google",
   }),
-  googleAuth
+  googleAuth,
 );
 
-  
 export default router;
