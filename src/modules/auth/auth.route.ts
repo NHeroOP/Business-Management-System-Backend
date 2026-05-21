@@ -4,7 +4,6 @@ import {
   loginUser,
   logoutUser,
   registerUser,
-  sendEmail,
 } from "./auth.controller.js";
 
 import { upload } from "@/shared/middlewares/multer.middleware.js";
@@ -19,15 +18,12 @@ router.route("/login").post(loginUser);
 
 router.route("/logout").post(verifyJWT, logoutUser);
 
-router.route("/send-email").post(sendEmail);
-
 router.route("/google").get(
   passport.authenticate("google", {
     scope: ["profile", "email"],
     session: false,
   }),
 );
-
 router.route("/google/callback").get(
   passport.authenticate("google", {
     failureRedirect: "/login",
