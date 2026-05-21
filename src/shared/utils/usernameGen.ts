@@ -1,4 +1,4 @@
-import { User } from "../../modules/user/User.model.js";
+import { User } from "@/modules/user/User.model.js";
 
 export const generateUsername = async (fullName: string): Promise<string> => {
   // Normalize base username

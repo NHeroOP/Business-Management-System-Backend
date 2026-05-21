@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { User } from "../../modules/user/User.model.js";
+import { User } from "@/modules/user/User.model.js";
 import { generateUsername } from "../utils/usernameGen.js";
 
 passport.use(
@@ -34,7 +34,10 @@ passport.use(
             fullName: profile.displayName,
             email,
             googleId: profile.id,
-            avatarUrl: profile.photos?.[0]?.value || "",
+            avatar: {
+              url: profile.photos?.[0]?.value || "",
+              publicId: `google_${profile.id}`,
+            },
           });
         }
 
