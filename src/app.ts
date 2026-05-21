@@ -31,6 +31,6 @@ app.use(cookieParser());
 
 app.use(passport.initialize());
 
-import authRouter from "./routes/auth.route.js";
+import authRouter from "./modules/auth/auth.route.js";
 
 app.use("/api/v1/auth", authRouter);

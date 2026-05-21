@@ -1,4 +1,4 @@
-import type { IUserDocument } from "../../../models/User.model.ts";
+import type { IUserDocument } from "../../../modules/user/User.model.ts";
 
 declare module "express-serve-static-core" {
   interface Request {

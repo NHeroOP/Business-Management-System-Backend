@@ -5,11 +5,24 @@ import bcrypt from "bcrypt";
 export interface IUser {
   username: string;
   fullName: string;
-  avatarUrl?: string;
   email: string;
   password?: string;
   refreshToken?: string;
   googleId?: string;
+
+    avatar?: {
+    url?: string;
+    publicId?: string;
+  };
+
+  provider: "local" | "google";
+
+  isVerified: boolean;
+  isArchived: boolean;
+
+  lastLoginAt?: Date;
+
+  metadata?: Record<string, unknown>;
 
   generateAccessToken: () => string;
   generateRefreshToken: () => string;
@@ -17,10 +30,23 @@ export interface IUser {
 }
 
 
+const avatarSchema = new Schema(
+  {
+    url: String,
+    publicId: String,
+  },
+  { _id: false }
+);
+
 export type IUserDocument = HydratedDocument<IUser>;
 
 const userSchema = new Schema<IUser>(
   {
+    fullName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     username: {
       type: String,
       required: true,
@@ -29,21 +55,13 @@ const userSchema = new Schema<IUser>(
       trim: true,
       index: true,
     },
-    fullName: {
-      type: String,
-      required: true,
-      trim: true,
-      index: true,
-    },
-    avatarUrl: {
-      type: String,
-    },
     email: {
       type: String,
       required: true,
       lowercase: true,
       trim: true,
       unique: true,
+      index: true,
     },
     password: {
       type: String,
@@ -53,6 +71,33 @@ const userSchema = new Schema<IUser>(
     },
     googleId: {
       type: String,
+    },
+
+    avatar: avatarSchema,
+
+    provider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
+    },
+
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    isArchived: {
+      type: Boolean,
+      default: false,
+    },
+
+    lastLoginAt: {
+      type: Date,
+    },
+
+    metadata: {
+      type: Schema.Types.Mixed,
+      default: {},
     },
   },
   { timestamps: true },

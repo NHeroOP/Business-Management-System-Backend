@@ -2,15 +2,15 @@ import type { Request, Response } from "express";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 
 import { Types } from "mongoose";
-import { User } from "../models/User.model.js";
+import { User } from "@/modules/user/User.model.js";
 
-import { uploadOnCloudinary } from "../shared/config/cloudinary.js";
-import { asyncHandler } from "../shared/utils/asyncHandler.js";
-import { ApiError } from "../shared/utils/ApiError.js";
-import { ApiResponse } from "../shared/utils/ApiResponse.js";
+import { uploadOnCloudinary } from "@/shared/config/cloudinary.js";
+import { asyncHandler } from "@/shared/utils/asyncHandler.js";
+import { ApiError } from "@/shared/utils/ApiError.js";
+import { ApiResponse } from "@/shared/utils/ApiResponse.js";
 
-import resend from "../shared/config/resend.js";
-import { VERIFICATION_EMAIL_TEMPLATE_ID } from "../consts.js";
+import resend from "@/shared/config/resend.js";
+import { VERIFICATION_EMAIL_TEMPLATE_ID } from "@/consts.js";
 
 const cookieOptions = {
   httpOnly: true,
@@ -85,7 +85,10 @@ export const registerUser = asyncHandler(
 
     const user = await User.create({
       fullName,
-      avatarUrl: avatar.url,
+      avatar: {
+        url: avatar.secure_url,
+        publicId: avatar.public_id,
+      },
       email,
       password,
       username: username.toLowerCase(),
@@ -143,7 +146,7 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     fullName: user.fullName,
     username: user.username,
     email: user.email,
-    avatarUrl: user.avatarUrl,
+    avatar: user.avatar,
   };
 
   return res

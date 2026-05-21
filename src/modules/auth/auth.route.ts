@@ -5,10 +5,10 @@ import {
   logoutUser,
   registerUser,
   sendEmail,
-} from "../controllers/auth.controller.js";
+} from "./auth.controller.js";
 
-import { upload } from "../shared/middlewares/multer.middleware.js";
-import { verifyJWT } from "../shared/middlewares/auth.middleware.js";
+import { upload } from "@/shared/middlewares/multer.middleware.js";
+import { verifyJWT } from "@/shared/middlewares/auth.middleware.js";
 import passport from "passport";
 
 const router = Router();
