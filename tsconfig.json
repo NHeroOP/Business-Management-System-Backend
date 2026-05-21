@@ -1,6 +1,9 @@
 {
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     // File Layout
     "rootDir": "./src",
     "outDir": "./dist",
@@ -43,5 +46,8 @@
     "moduleDetection": "force",
     "skipLibCheck": true
   },
-  "include": ["src/**/*", "src/shared/@types/**/*.d.ts"]
+  "include": ["src/**/*", "src/shared/@types/**/*.d.ts"],
+  "ts-node": { 
+    "require": ["tsconfig-paths/register"] 
+  }
 }
