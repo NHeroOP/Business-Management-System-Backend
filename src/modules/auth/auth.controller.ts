@@ -5,10 +5,13 @@ import { ApiError } from "@/shared/utils/ApiError.js";
 import { ApiResponse } from "@/shared/utils/ApiResponse.js";
 
 import {
+  forgotPasswordService,
+  getCurrentUserService,
   loginUserService,
   logoutUserService,
   refreshAccessTokenService,
-  registerUserService
+  registerUserService,
+  resetPasswordService
 } from "./auth.service.js";
 import { generateTokens } from "./auth.util.js";
 import { cookieOptions } from "./auth.const.js";
@@ -90,6 +93,39 @@ export const refreshAccessToken = asyncHandler(async (req: Request, res: Respons
       ),
     );
 });
+
+export const forgotPassword = asyncHandler(async (req: Request, res: Response) => { 
+  await forgotPasswordService(req.body.email);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password reset email sent successfully"));
+});
+
+export const resetPassword = asyncHandler(async (req: Request, res: Response) => { 
+  const { token, userId, newPassword } = req.body;
+
+  await resetPasswordService({ token, userId, newPassword });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password reset successfully"));
+});
+
+export const getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?._id;
+
+  if (!userId) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  const user = await getCurrentUserService(userId);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Current user fetched successfully"));
+});
+
 
 export const googleAuth = asyncHandler(async (req: Request, res: Response) => {
   const user = req.user!;

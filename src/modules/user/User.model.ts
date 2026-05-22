@@ -24,6 +24,9 @@ export interface IUser {
 
   metadata?: Record<string, unknown>;
 
+  passwordResetToken?: string | undefined;
+  passwordResetTokenExpiry?: Date | undefined;
+
   generateAccessToken: () => string;
   generateRefreshToken: () => string;
   isPasswordCorrect: (password: string) => Promise<boolean>;
@@ -99,6 +102,9 @@ const userSchema = new Schema<IUser>(
       type: Schema.Types.Mixed,
       default: {},
     },
+
+    passwordResetToken: String,
+    passwordResetTokenExpiry: Date
   },
   { timestamps: true },
 );

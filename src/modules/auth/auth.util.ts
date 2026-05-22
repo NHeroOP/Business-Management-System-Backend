@@ -1,6 +1,9 @@
-import { ApiError } from "@/shared/utils/ApiError.js";
-import { User } from "../user/User.model.js";
+import { createHash } from "crypto";
 import type { Types } from "mongoose";
+
+import { User } from "../user/User.model.js";
+import { ApiError } from "@/shared/utils/ApiError.js";
+
 
 export const generateTokens = async (
   userId: Types.ObjectId | string,
@@ -22,4 +25,10 @@ export const generateTokens = async (
     console.log(err);
     throw new ApiError(500, "Error while generating tokens");
   }
+};
+
+export const hashData = (data: string): string => {
+  return createHash('sha256')
+    .update(data)
+    .digest('hex');
 };
