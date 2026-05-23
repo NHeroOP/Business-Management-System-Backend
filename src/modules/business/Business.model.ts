@@ -1,12 +1,13 @@
-import { Schema, model, type HydratedDocument } from "mongoose";
+import { Schema, Types, model, type HydratedDocument } from "mongoose";
 
 export interface IBusiness {
   name: string;
   slug: string;
+  createdBy: Types.ObjectId;
 
   logo?: {
-    url?: string;
-    publicId?: string;
+    url?: string | undefined;
+    publicId?: string | undefined;
   };
 
   email?: string;
@@ -51,6 +52,12 @@ const businessSchema = new Schema<IBusiness>(
       lowercase: true,
       trim: true,
       index: true,
+    },
+    
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
 
     logo: logoSchema,
