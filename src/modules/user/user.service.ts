@@ -7,7 +7,7 @@ import { uploadOnCloudinary } from "@/shared/config/cloudinary.js";
 
 interface UpdateUserProfileServiceInput { 
   userId: Types.ObjectId | undefined;
-  fullName: string;
+  name: string;
 }
 
 interface ChangePasswordServiceInput {
@@ -38,18 +38,18 @@ export const getUserProfile = async (userId: Types.ObjectId | undefined) => {
 
 };
 
-export const updateUserProfile = async ({ userId, fullName }: UpdateUserProfileServiceInput) => {
+export const updateUserProfile = async ({ userId, name }: UpdateUserProfileServiceInput) => {
   if (!userId) {
     throw new ApiError(400, "User ID is required");
   }
 
-  if (!fullName) {
+  if (!name) {
     throw new ApiError(400, "Full name is required");
   }
 
   const user = await User
     .findByIdAndUpdate(userId, {
-      $set: { fullName }
+      $set: { name }
     }, { returnDocument: "after" })
     .select("-password -refreshToken -passwordResetToken -passwordResetTokenExpiry -googleId");
   

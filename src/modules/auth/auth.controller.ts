@@ -17,17 +17,12 @@ import { generateTokens } from "./auth.util.js";
 import { cookieOptions } from "./auth.const.js";
 
 
-export const registerUser = asyncHandler( async (req: Request, res: Response) => {
-  const files = req.files as {
-    avatarUrl?: Express.Multer.File[];
-  };
-
-  if (!files || !files.avatarUrl || files.avatarUrl.length === 0) {
-    throw new ApiError(400, "Avatar image is required");
+export const registerUser = asyncHandler(async (req: Request, res: Response) => {
+  const avatarLocalPath = req.file?.path;
+  if (!avatarLocalPath) {
+    throw new ApiError(400, "Failed to upload avatar image");
   }
-
-  const avatarLocalPath = files.avatarUrl[0]?.path;
-
+  
   const createdUser = await registerUserService({
     body: req.body,
     avatarLocalPath

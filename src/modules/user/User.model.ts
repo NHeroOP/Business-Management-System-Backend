@@ -4,7 +4,7 @@ import bcrypt from "bcrypt";
 
 export interface IUser {
   username: string;
-  fullName: string;
+  name: string;
   email: string;
   password?: string;
   refreshToken?: string;
@@ -45,7 +45,7 @@ export type IUserDocument = HydratedDocument<IUser>;
 
 const userSchema = new Schema<IUser>(
   {
-    fullName: {
+    name: {
       type: String,
       required: true,
       trim: true,
@@ -129,7 +129,7 @@ userSchema.methods.generateAccessToken = function (): string {
       _id: this._id,
       email: this.email,
       username: this.username,
-      fullName: this.fullName,
+      name: this.name,
     },
     process.env.ACCESS_TOKEN_SECRET!! as Secret,
     {

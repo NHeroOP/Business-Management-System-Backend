@@ -15,7 +15,7 @@ interface RegisterUserServiceInput {
   body: {
     username: string;
     email: string;
-    fullName: string;
+    name: string;
     password: string;
   };
 
@@ -42,9 +42,9 @@ interface ResetPasswordServiceInput {
 
 
 export const registerUserService = async ({ body, avatarLocalPath }: RegisterUserServiceInput) => {
-  const { username, email, fullName, password } = body;
+  const { username, email, name, password } = body;
   if (
-    [fullName, email, username, password].some(
+    [name, email, username, password].some(
       (field) => field?.trim() === "",
     )
   ) {
@@ -73,7 +73,7 @@ export const registerUserService = async ({ body, avatarLocalPath }: RegisterUse
   }
 
   const user = await User.create({
-    fullName,
+    name,
     avatar: {
       url: avatar.secure_url,
       publicId: avatar.public_id,
@@ -130,7 +130,7 @@ export const loginUserService = async ({ body }: LoginUserServiceInput) => {
 
   const userData = {
     _id: user._id,
-    fullName: user.fullName,
+    name: user.name,
     username: user.username,
     email: user.email,
     avatar: user.avatar,

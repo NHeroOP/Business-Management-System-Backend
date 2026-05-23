@@ -22,9 +22,9 @@ export const getMyProfile = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const updateMyProfile = asyncHandler(async (req: Request, res: Response) => { 
-  const { fullName } = req.body;
+  const { name } = req.body;
 
-  const user = await updateUserProfile({ userId: req?.user?._id, fullName });
+  const user = await updateUserProfile({ userId: req?.user?._id, name });
 
   return res.status(200).json(
     new ApiResponse(200, user, "User profile updated successfully")
