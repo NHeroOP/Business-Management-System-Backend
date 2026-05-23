@@ -42,16 +42,9 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
 });
 
 export const updateAvatar = asyncHandler(async (req: Request, res: Response) => { 
-  const files = req.files as {
-    avatarUrl?: Express.Multer.File[];
-  };
-
-  if (!files || !files.avatarUrl || files.avatarUrl.length === 0) {
-    throw new ApiError(400, "Avatar image is required");
-  }
-  const avatarLocalPath = files.avatarUrl[0]?.path;
-
+  const avatarLocalPath = req.file?.path;
   await updateUserAvatar({ userId: req?.user?._id, avatarLocalPath });
+
   return res.status(200).json(
     new ApiResponse(200, {}, "Avatar updated successfully")
   );
