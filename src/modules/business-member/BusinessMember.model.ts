@@ -1,14 +1,12 @@
+import type { ROLE_ENUM } from "@/consts.js";
 import { Schema, model, Types, type HydratedDocument } from "mongoose";
 
 export interface IBusinessMember {
   businessId: Types.ObjectId;
-  userId: Types.ObjectId;
-  role: "owner" | "admin" | "employee";
+  memberId: Types.ObjectId;
+  role: ROLE_ENUM;
   permissions: string[];
-  joinedAt: Date;
   isArchived: boolean;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 export type IBusinessMemberDocument = HydratedDocument<IBusinessMember>;
@@ -22,7 +20,7 @@ const businessMemberSchema = new Schema<IBusinessMember>(
       index: true,
     },
 
-    userId: {
+    memberId: {
       type: Types.ObjectId,
       ref: "User",
       required: true,
@@ -31,18 +29,13 @@ const businessMemberSchema = new Schema<IBusinessMember>(
 
     role: {
       type: String,
-      enum: ["owner", "admin", "employee"],
-      default: "employee",
+      enum: ["OWNER", "ADMIN", "EMPLOYEE"],
+      default: "EMPLOYEE",
     },
 
     permissions: {
       type: [String],
       default: [],
-    },
-
-    joinedAt: {
-      type: Date,
-      default: Date.now,
     },
 
     isArchived: {
