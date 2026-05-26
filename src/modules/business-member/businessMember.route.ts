@@ -10,13 +10,14 @@ import {
 import { verifyJWT } from "@/shared/middlewares/auth.middleware.js";
 import { requireRole } from "@/shared/middlewares/rbac.middleware.js";
 import { Business_Roles } from "@/consts.js";
+import { resolveWorkspace } from "@/shared/middlewares/workspace.middleware.js";
 
 
 const router = Router({
   mergeParams: true
 });
 
-router.use(verifyJWT)
+router.use(verifyJWT, resolveWorkspace);
 
 router.route("/")
   .get(
@@ -35,7 +36,7 @@ router.route("/:memberId")
   );
 
 router.route("/:memberId/role")
-  .put(
+  .patch(
     requireRole([Business_Roles.OWNER, Business_Roles.ADMIN]),
     updateMemberRole
   );

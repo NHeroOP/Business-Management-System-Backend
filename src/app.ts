@@ -37,4 +37,4 @@ import businessMemberRouter from "./modules/business-member/businessMember.route
 
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/businesses", businessRouter);
-app.use("/api/v1/businesses/:businessId/members", businessMemberRouter);
+app.use("/api/v1/business-members", businessMemberRouter);

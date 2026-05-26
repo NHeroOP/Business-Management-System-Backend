@@ -14,11 +14,11 @@ import { ApiResponse } from "@/shared/utils/ApiResponse.js";
 export const createBusiness = asyncHandler(async (req: Request, res: Response) => { 
   const business = await createBusinessService({
     payload: req.body,
-    createdBy: req.user?.id,
+    createdBy: req.user?._id,
     logoUrl: req.file?.path
   });
 
-  await createBusinessMember({businessId: business._id, memberId: req.user?.id});
+  await createBusinessMember({businessId: business._id, memberId: req.user?._id});
 
   return res.status(201).json(
     new ApiResponse(201, business, "Business created successfully")

@@ -9,13 +9,16 @@ import {
 
 import { asyncHandler } from "@/shared/utils/asyncHandler.js";
 import { ApiResponse } from "@/shared/utils/ApiResponse.js";
+import type { Types } from "mongoose";
 
 
 export const inviteMember = asyncHandler(async (req: Request, res: Response) => {
   await addBusinessMember({
-    authUserId: req.user?._id,
-    memberId: req.params.memberId as string,
-    ...req.body
+    role: req.body.role,
+    currUserRole: req.workspace!.role,
+    // permissions: req.body.permissions,
+    businessId: req.workspace!.businessId,
+    memberId: req.params.memberId as Types.ObjectId | string,
   });
 
   return res.status(200).json(
@@ -24,9 +27,7 @@ export const inviteMember = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const getMembers = asyncHandler(async (req: Request, res: Response) => {
-  const members = await findBusinessMembers(
-    req.params.businessId as string
-  );
+  const members = await findBusinessMembers(req.workspace!.businessId);
   return res.status(200).json(
     new ApiResponse(200, members, "Members retrieved successfully")
   );
@@ -34,9 +35,10 @@ export const getMembers = asyncHandler(async (req: Request, res: Response) => {
 
 export const updateMemberRole = asyncHandler(async (req: Request, res: Response) => { 
   await changeMemberRole({
-    authUserId: req.user?._id,
-    memberId: req.params.memberId as string,
-    ...req.body
+    role: req.body.role,
+    currUserRole: req.workspace!.role,
+    businessId: req.workspace!.businessId,
+    memberId: req.params.memberId as Types.ObjectId | string,
   });
 
   return res.status(200).json(
@@ -46,9 +48,9 @@ export const updateMemberRole = asyncHandler(async (req: Request, res: Response)
 
 export const removeMember = asyncHandler(async (req: Request, res: Response) => { 
   await removeBusinessMember({
-    authUserId: req.user?._id,
-    memberId: req.params.memberId as string,
-    ...req.body
+    currUserRole: req.workspace!.role,
+    businessId: req.workspace!.businessId,
+    memberId: req.params.memberId as string | Types.ObjectId,
   });
   
   return res.status(200).json(
