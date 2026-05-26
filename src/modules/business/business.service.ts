@@ -13,27 +13,28 @@ import { Business_Roles } from "@/consts.js";
 type BusinessPayload = Pick<
   IBusiness, "name" | "email" | "phone" | "address" | "website" | "description"
 >;
-interface createBusinessServiceInput { 
+interface CreateBusinessPayload { 
   payload: Pick<BusinessPayload, "name"> & Partial<Omit<BusinessPayload, "name">>;
   createdBy: Types.ObjectId | string | undefined;
   logoUrl?: string | undefined;
 }
 
-interface createBusinessMemberInput {
+interface CreateBusinessMemberPayload {
   businessId: Types.ObjectId | string;
   memberId: Types.ObjectId | string | undefined;
 }
 
-interface updateBusinessDetailsInput extends Partial<BusinessPayload> {
-  businessId: Types.ObjectId | string;
+interface UpdateBusinessDetailsPayload
+  extends Partial<BusinessPayload> {
+    businessId: Types.ObjectId | string;
 }
 
-interface updateBusinessLogoInput {
+interface UpdateBusinessLogoPayload {
   businessId: Types.ObjectId | string;
   logoUrl: string | undefined;
 }
 
-export const createBusiness = async ({ payload, createdBy, logoUrl }: createBusinessServiceInput): Promise<IBusinessDocument> => { 
+export const createBusiness = async ({ createdBy, logoUrl, payload }: CreateBusinessPayload): Promise<IBusinessDocument> => { 
   if (!createdBy) {
     throw new ApiError(401, "Unauthorized");
   }
@@ -74,7 +75,7 @@ export const createBusiness = async ({ payload, createdBy, logoUrl }: createBusi
   return newBusiness;
 };
 
-export const createBusinessMember = async ({ businessId, memberId }: createBusinessMemberInput): Promise<void> => {
+export const createBusinessMember = async ({ businessId, memberId }: CreateBusinessMemberPayload): Promise<void> => {
   if (!businessId || !memberId) {
     throw new ApiError(500, "Business ID and User ID are required");
   }
@@ -108,7 +109,7 @@ export const findBusinessById = async (businessId: Types.ObjectId | string): Pro
   return business;
 };
 
-export const updateBusinessDetails = async ({businessId, ...payload}: updateBusinessDetailsInput ): Promise<IBusinessDocument> => { 
+export const updateBusinessDetails = async ({businessId, ...payload}: UpdateBusinessDetailsPayload ): Promise<IBusinessDocument> => { 
   const { name, email, phone, address, website, description } = payload;
 
   if (!businessId) {
@@ -135,7 +136,7 @@ export const updateBusinessDetails = async ({businessId, ...payload}: updateBusi
   return business;
 };
 
-export const updateBusinessLogo = async ({ businessId, logoUrl }: updateBusinessLogoInput): Promise<IBusinessDocument> => { 
+export const updateBusinessLogo = async ({ businessId, logoUrl }: UpdateBusinessLogoPayload): Promise<IBusinessDocument> => { 
   if (!businessId || !logoUrl) {
     throw new ApiError(400, "Business ID, and Logo URL are required");
   }
