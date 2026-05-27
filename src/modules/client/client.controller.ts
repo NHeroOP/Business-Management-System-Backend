@@ -55,7 +55,6 @@ export const getClientById = asyncHandler(async (req: Request, res: Response) =>
 export const updateClient = asyncHandler(async (req: Request, res: Response) => { 
   const { name, tags, email, phone, address, companyName, gstNumber, notes } = req.body;
   const updatePayload = {
-    businessId: req.workspace!._id,
     clientId: req.params.clientId as Types.ObjectId | string,
     updateData: { name, tags, email, phone, address, companyName, gstNumber, notes }
   }
@@ -64,10 +63,9 @@ export const updateClient = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const deleteClient = asyncHandler(async (req: Request, res: Response) => { 
-  await archiveClient({
-    businessId: req.workspace!._id,
-    clientId: req.params.clientId as Types.ObjectId | string
-  });
+  await archiveClient(
+    req.params.clientId as Types.ObjectId | string
+  );
 
   return res.status(200).json(
     new ApiResponse(200, {}, "Client archived successfully")

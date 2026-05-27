@@ -12,14 +12,8 @@ interface FindClientPayload {
 }
 
 interface UpdateClientPayload {
-  businessId: Types.ObjectId | string;
   clientId: Types.ObjectId | string;
-  updateData: Partial<Omit<IClient, "businessId" | "createdBy" | "isArchived">>;
-}
-
-interface ArchiveClientPayload {
-  businessId: Types.ObjectId | string;
-  clientId: Types.ObjectId | string;
+  updateData: Partial<Omit<IClient, "businessId" | "createdBy" | "isArchived" | "metadata">>;
 }
 
 export const createClient = async (
@@ -96,11 +90,10 @@ export const updateClient = async (
   payload: UpdateClientPayload
 ) => { 
 
-  const { businessId, clientId, updateData } = payload;
+  const { clientId, updateData } = payload;
 
   const client = await Client.findOne({
     _id: clientId,
-    businessId: businessId,
     isArchived: false,
   });
 
@@ -114,7 +107,7 @@ export const updateClient = async (
 };
 
 export const archiveClient = async (
-  { businessId, clientId }: ArchiveClientPayload
+  clientId: Types.ObjectId | string
 ): Promise<void> => { 
   if (!clientId) {
     throw new ApiError(400, "Client ID is required");
@@ -122,7 +115,6 @@ export const archiveClient = async (
 
   const client = await Client.findOne({
     _id: clientId,
-    businessId: businessId,
     isArchived: false,
   });
 
