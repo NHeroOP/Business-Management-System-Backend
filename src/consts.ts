@@ -5,3 +5,8 @@ export enum Business_Roles {
   ADMIN= "ADMIN",
   EMPLOYEE= "EMPLOYEE"
 };
+export type PRODUCT_TYPE_ENUM = "PRODUCT" | "SERVICE";
+export enum Product_Type {
+  PRODUCT = "PRODUCT",
+  SERVICE = "SERVICE"
+}
