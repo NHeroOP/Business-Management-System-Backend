@@ -1,4 +1,5 @@
-import { Schema, model, Types, type HydratedDocument } from "mongoose";
+import { Schema, model, Types, type HydratedDocument, type AggregatePaginateModel } from "mongoose";
+import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 export interface IClient {
   businessId: Types.ObjectId;
@@ -13,9 +14,11 @@ export interface IClient {
   isArchived: boolean;
   createdBy: Types.ObjectId;
   metadata?: Record<string, unknown>;
+
 }
 
 export type IClientDocument = HydratedDocument<IClient>;
+
 
 const clientSchema = new Schema<IClient>(
   {
@@ -71,7 +74,10 @@ const clientSchema = new Schema<IClient>(
 );
 
 clientSchema.index({
-  name: "text",
+  businessId: 1,
+  createdAt: -1,
 });
 
-export const Client = model<IClient>("Client", clientSchema);
+clientSchema.plugin(mongooseAggregatePaginate);
+
+export const Client = model<IClient, AggregatePaginateModel<IClient>>("Client", clientSchema);
