@@ -5,10 +5,10 @@ import { Types, type AggregatePaginateResult } from "mongoose";
 
 interface FindClientPayload {
   businessId: Types.ObjectId | string;
-  options?: {
-    page?: number;
-    limit?: number;
-  }
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: string;
 }
 
 interface UpdateClientPayload {
@@ -52,21 +52,25 @@ export const createClient = async (
 }
 
 export const findClients = async (
-  { businessId, options }: FindClientPayload
+  payload: FindClientPayload
 ): Promise<AggregatePaginateResult<IClientDocument>> => {
-
+  const { businessId, page = 1, limit = 10, search, sortBy } = payload;
+  
   const clientAggregate = Client.aggregate([
     {
       $match: { businessId: new Types.ObjectId(businessId), isArchived: false }
-    },
-    {
+    }, {
+      $sort: sortBy === "name" ? { name: 1 } : { createdAt: -1 }
+    }, {
+      $match: search ? { name: { $regex: search, $options: "i" } } : {}
+    }, {
       $project: {
         metadata: 0
       }
     }
   ])
 
-  const clients = await Client.aggregatePaginate(clientAggregate, options)
+  const clients = await Client.aggregatePaginate(clientAggregate, { page, limit })
 
 
   if (!clients || clients.docs.length === 0) {

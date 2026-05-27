@@ -27,14 +27,14 @@ export const createClient = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const getClients = asyncHandler(async (req: Request, res: Response) => { 
-  const { page = 1, limit = 10 } = req.query;
-  const options = {
-    page: parseInt(page as string) || 1,
-    limit: parseInt(limit as string) || 10
-  }
+  const { page = 1, limit = 10, search, sortBy } = req.query;
+
   const clients = await findClients({
     businessId: req.workspace!._id,
-    options
+    page: parseInt(page as string) || 1,
+    limit: parseInt(limit as string) || 10,
+    search: search as string,
+    sortBy: sortBy as string
   });
 
   return res.status(200).json(
