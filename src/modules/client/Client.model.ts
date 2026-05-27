@@ -19,7 +19,6 @@ export interface IClient {
 
 export type IClientDocument = HydratedDocument<IClient>;
 
-
 const clientSchema = new Schema<IClient>(
   {
     businessId: {
@@ -74,6 +73,7 @@ const clientSchema = new Schema<IClient>(
 );
 
 clientSchema.index({
+  name: "text",
   businessId: 1,
   createdAt: -1,
 });
