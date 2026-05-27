@@ -1,4 +1,4 @@
-import type { ROLE_ENUM } from "@/consts.js";
+import { Business_Roles, type ROLE_ENUM } from "@/consts.js";
 import { Schema, model, Types, type HydratedDocument } from "mongoose";
 
 export interface IBusinessMember {
@@ -29,8 +29,8 @@ const businessMemberSchema = new Schema<IBusinessMember>(
 
     role: {
       type: String,
-      enum: ["OWNER", "ADMIN", "EMPLOYEE"],
-      default: "EMPLOYEE",
+      enum: Object.values(Business_Roles),
+      default: Business_Roles.EMPLOYEE,
     },
 
     permissions: {
