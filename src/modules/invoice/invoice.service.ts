@@ -1,10 +1,12 @@
-import { startSession, type Types } from "mongoose"
+import { startSession, Types } from "mongoose"
+
+import { Client } from "../client/Client.model.js";
+import { Product } from "../product/Product.model.js";
 import { Invoice, type IInvoiceDocument } from "./Invoice.model.js"
+import { InvoiceCounter } from "../invoiceCounter/InvoiceCounter.model.js";
 
 import { ApiError } from "@/shared/utils/ApiError.js"
-import { Product } from "../product/Product.model.js";
-import { InvoiceCounter } from "../invoiceCounter/InvoiceCounter.model.js";
-import { Client } from "../client/Client.model.js";
+import { allowedSortFields } from "./invoice.const.js";
 
 
 interface InvoiceItemInput {
@@ -21,6 +23,18 @@ interface createInvoicePayload {
   discount?: number;
   dueDate?: Date;
   notes?: string;
+}
+
+interface FindInvoicesPayload {
+  businessId: Types.ObjectId | string,
+  email?: string;
+  name?: string;
+  options: {
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+  }
 }
 
 export const createInvoice = async (
@@ -179,11 +193,73 @@ export const createInvoice = async (
   return invoice;
 }
 
-// export const calculateInvoiceTotals = async() => {}
+export const findInvoices = async (
+  payload: FindInvoicesPayload
+) => {
+  const { businessId, email, name, options } = payload;
 
-// export const generateInvoiceNumber = async() => {}
+  const sortBy = allowedSortFields.includes(options.sortBy ?? "") ? options.sortBy! : "issuedDate";
+  const sortOrder = options.sortOrder === "asc" ? 1 : -1;
 
-export const findInvoices = async() => {}
+  const invoiceAggregate = Invoice.aggregate([
+    {
+      $match: {
+        businessId: new Types.ObjectId(businessId),
+      }
+    },
+    {
+      $lookup: {
+        from: "clients",
+        localField: "clientId",
+        foreignField: "_id",
+        as: "client",
+        pipeline: [
+          {
+            $project: {
+              name: 1,
+              email: 1,
+              phone: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $addFields: {
+        client: {
+          $arrayElemAt: ["$client", 0]
+        }
+      }
+    },
+    {
+      $match: {
+        ...(email && { "client.email": { $regex: email, $options: "i" } }),
+        ...(name && { "client.name": { $regex: name, $options: "i" } }),
+      },
+    },
+    {
+      $sort: {
+        [sortBy]: sortOrder,
+      },
+    }, 
+    {
+      $project: {
+        metadata: 0,
+        __v: 0,
+        clientId: 0,
+      }
+    }
+  ])
+
+
+  const invoices = await Invoice.aggregatePaginate(invoiceAggregate, {
+    page: options.page || 1,
+    limit: options.limit || 10
+  })
+
+
+  return invoices;
+}
 
 export const findInvoiceById = async() => {}
 

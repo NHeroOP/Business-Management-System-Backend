@@ -1,5 +1,6 @@
 import { InvoiceStatus, type INVOICE_STATUS_ENUM } from "@/consts.js";
-import { Schema, model, Types, type HydratedDocument } from "mongoose";
+import { Schema, model, Types, type HydratedDocument, type AggregatePaginateModel } from "mongoose";
+import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 export interface IInvoiceItem {
   productId?: Types.ObjectId;
@@ -162,4 +163,13 @@ const invoiceSchema = new Schema<IInvoice>(
   }
 );
 
-export const Invoice = model<IInvoice>("Invoice", invoiceSchema);
+invoiceSchema.index({
+  invoiceNumber: "text",
+  businessId: 1,
+  clientId: 1,
+  createdAt: -1,
+});
+
+invoiceSchema.plugin(mongooseAggregatePaginate)
+
+export const Invoice = model<IInvoice, AggregatePaginateModel<IInvoice>>("Invoice", invoiceSchema);
