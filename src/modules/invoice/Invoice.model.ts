@@ -12,7 +12,7 @@ export interface IInvoiceItem {
 
 export interface IInvoice {
   businessId: Types.ObjectId;
-  clientId: Types.ObjectId;
+  client: Types.ObjectId;
   invoiceNumber: string;
   items: IInvoiceItem[];
   subtotal: number;
@@ -73,7 +73,7 @@ const invoiceSchema = new Schema<IInvoice>(
       index: true,
     },
 
-    clientId: {
+    client: {
       type: Types.ObjectId,
       ref: "Client",
       required: true,

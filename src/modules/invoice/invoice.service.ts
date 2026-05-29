@@ -164,7 +164,7 @@ export const createInvoice = async (
     [invoice] = await Invoice.create([{
       businessId,
       createdBy: userId,
-      clientId,
+      client: clientId,
       items: invoiceItems,
       subtotal,
       total: totalAfterTax,
@@ -210,7 +210,7 @@ export const findInvoices = async (
     {
       $lookup: {
         from: "clients",
-        localField: "clientId",
+        localField: "client",
         foreignField: "_id",
         as: "client",
         pipeline: [
@@ -246,7 +246,6 @@ export const findInvoices = async (
       $project: {
         metadata: 0,
         __v: 0,
-        clientId: 0,
       }
     }
   ])
