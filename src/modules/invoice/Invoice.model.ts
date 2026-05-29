@@ -1,3 +1,4 @@
+import { InvoiceStatus, type INVOICE_STATUS_ENUM } from "@/consts.js";
 import { Schema, model, Types, type HydratedDocument } from "mongoose";
 
 export interface IInvoiceItem {
@@ -18,13 +19,7 @@ export interface IInvoice {
   discount: number;
   total: number;
   currency: string;
-  status:
-    | "draft"
-    | "unpaid"
-    | "paid"
-    | "overdue"
-    | "cancelled";
-
+  status: INVOICE_STATUS_ENUM;
   dueDate?: Date;
   issuedDate: Date;
   notes?: string;
@@ -126,22 +121,20 @@ const invoiceSchema = new Schema<IInvoice>(
 
     status: {
       type: String,
-      enum: [
-        "draft",
-        "unpaid",
-        "paid",
-        "overdue",
-        "cancelled",
-      ],
-      default: "draft",
+      enum: Object.values(InvoiceStatus),
+      default: InvoiceStatus.DRAFT,
       index: true,
     },
 
     dueDate: Date,
-
     issuedDate: {
       type: Date,
-      default: Date.now,
+      required: true,
+      default: () => {
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
+        return today;
+      }
     },
 
     notes: String,

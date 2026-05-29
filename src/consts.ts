@@ -10,3 +10,12 @@ export enum Product_Type {
   PRODUCT = "PRODUCT",
   SERVICE = "SERVICE"
 }
+
+export type INVOICE_STATUS_ENUM = "DRAFT" | "SENT" | "PAID" | "OVERDUE" | "CANCELLED";
+export enum InvoiceStatus {
+  DRAFT = "DRAFT",
+  SENT = "SENT",
+  PAID = "PAID",
+  OVERDUE = "OVERDUE",
+  CANCELLED = "CANCELLED"
+}
