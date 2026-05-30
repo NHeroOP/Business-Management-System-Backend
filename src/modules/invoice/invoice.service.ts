@@ -7,6 +7,8 @@ import { InvoiceCounter } from "../invoiceCounter/InvoiceCounter.model.js";
 
 import { ApiError } from "@/shared/utils/ApiError.js"
 import { allowedSortFields } from "./invoice.const.js";
+import { type INVOICE_STATUS_ENUM } from "@/consts.js";
+import resend from "@/shared/config/resend.js";
 
 
 interface InvoiceItemInput {
@@ -33,8 +35,30 @@ interface FindInvoicesPayload {
     page?: number;
     limit?: number;
     sortBy?: string;
-    sortOrder?: "asc" | "desc";
+    sortOrder?: 1 | -1;
   }
+}
+
+interface IdPayload {
+  invoiceId: Types.ObjectId | string;
+  businessId: Types.ObjectId | string;
+}
+
+type PopulatedClient = {
+  name: string | undefined;
+  email: string | undefined;
+  phone: string | undefined;
+}
+
+interface UpdateInvoicePayload {
+  invoiceId: Types.ObjectId | string;
+  businessId: Types.ObjectId | string;
+  clientId?: Types.ObjectId | string;
+  items?: InvoiceItemInput[];
+  tax?: number;
+  discount?: number;
+  dueDate?: Date;
+  notes?: string;
 }
 
 export const createInvoice = async (
@@ -199,7 +223,7 @@ export const findInvoices = async (
   const { businessId, email, name, options } = payload;
 
   const sortBy = allowedSortFields.includes(options.sortBy ?? "") ? options.sortBy! : "issuedDate";
-  const sortOrder = options.sortOrder === "asc" ? 1 : -1;
+  const sortOrder = options.sortOrder ?? -1;
 
   const invoiceAggregate = Invoice.aggregate([
     {
@@ -260,12 +284,146 @@ export const findInvoices = async (
   return invoices;
 }
 
-export const findInvoiceById = async() => {}
+export const findInvoiceById = async (
+  { businessId, invoiceId }: IdPayload
+) => {
+  if (!invoiceId) {
+    throw new ApiError(400, "invoiceId is required");
+  }
 
-export const updateInvoice = async() => {}
+  const invoice = await Invoice.findOne({
+    _id: invoiceId,
+    businessId,
+    isArchived: false,
+  }).populate("client", "name email phone").lean().select("-metadata -__v");
 
-export const archiveInvoice = async() => {}
+  if (!invoice) {
+    throw new ApiError(404, "Invoice not found");
+  }
 
-export const changeInvoiceStatus = async() => {}
+  return invoice;
+}
 
-export const generateInvoicePdf = async() => {}
+export const updateInvoice = async (
+  payload: UpdateInvoicePayload
+) => {
+  const { businessId, invoiceId, discount, notes, dueDate} = payload;
+  if (!invoiceId) {
+    throw new ApiError(400, "invoiceId is required");
+  }
+
+  const invoice = await Invoice.findOne({
+    _id: invoiceId,
+    businessId,
+    isArchived: false,
+  });
+
+  if (!invoice) {
+    throw new ApiError(404, "Invoice not found");
+  }
+  
+  if (invoice.status === "CANCELLED") {
+    throw new ApiError(400, "Cannot update a cancelled invoice");
+  }
+
+  if (invoice.status === "PAID") {
+    
+  }
+
+}
+
+export const archiveInvoice = async (
+  { invoiceId, businessId }: IdPayload
+) => {
+  if (!invoiceId) {
+    throw new ApiError(400, "invoiceId is required");
+  }
+
+  const invoice = await Invoice.findOneAndUpdate(
+    {
+      _id: invoiceId,
+      businessId,
+      isArchived: false,
+    },
+    { isArchived: true },
+    { "returnDocument": "after" }
+  );
+
+  if (!invoice) {
+    throw new ApiError(404, "Invoice not found");
+  }
+
+  return invoice;
+}
+
+export const changeInvoiceStatus = async (
+  { invoiceId, businessId, status }: IdPayload & {status: INVOICE_STATUS_ENUM}
+) => {
+  if (!invoiceId) {
+    throw new ApiError(400, "invoiceId is required");
+  }
+
+  if (!status) {
+    throw new ApiError(400, "status is required");
+  }
+
+  if (!["DRAFT", "SENT", "PAID", "OVERDUE", "CANCELLED"].includes(status)) {
+    throw new ApiError(400, "Invalid invoice status");
+  }
+
+  const invoice = await Invoice.findOne({
+    _id: invoiceId,
+    businessId,
+    isArchived: false,
+  }).populate<{ client: PopulatedClient }>("client", "name email phone");
+
+  if (!invoice) {
+    throw new ApiError(404, "Invoice not found");
+  }
+
+  if (invoice.status = "CANCELLED") {
+    throw new ApiError(400, "Cannot change status of a cancelled invoice");
+  }
+
+  if (invoice.status === status) {
+    throw new ApiError(400, `Invoice is already in ${status} status`);
+  }
+
+  invoice.status = status;
+  await invoice.save();
+
+  if (status === "SENT" && invoice.client && invoice.client.email) { 
+    await resend.emails.send({
+      from: "Invoice App <send@no-reply.nhero.me>",
+      to: invoice.client.email,
+      subject: `Invoice ${invoice.invoiceNumber} from Your Company`,
+      html: ""
+    })
+  }
+
+  return invoice;
+}
+
+export const generateInvoicePdf = async (
+  { invoiceId, businessId }: IdPayload
+) => {
+  if (!invoiceId) {
+    throw new ApiError(400, "invoiceId is required");
+  }
+
+  const invoice = await Invoice
+    .findOne({
+      _id: invoiceId,
+      businessId,
+      isArchived: false,
+    })
+    .populate("client", "name email phone")
+    .populate("items.productId", "name description price image")
+    .lean();
+
+  if (!invoice) {
+    throw new ApiError(404, "Invoice not found");
+  }
+
+  return invoice;
+}

@@ -11,9 +11,16 @@ import {
 } from "./invoice.controller.js";
 
 import { verifyJWT } from "@/shared/middlewares/auth.middleware.js";
+import { resolveWorkspace } from "@/shared/middlewares/workspace.middleware.js";
+import { requireRole } from "@/shared/middlewares/rbac.middleware.js";
+import { Business_Roles } from "@/consts.js";
 
 const router = Router();
-router.use(verifyJWT);
+router.use(
+  verifyJWT,
+  resolveWorkspace,
+  requireRole(Object.values(Business_Roles))
+);
 
 router.route("/")
   .get(getInvoices)

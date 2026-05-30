@@ -1,6 +1,6 @@
 export const allowedSortFields = [
   "createdAt",
-  "issuedAt",
+  "issuedDate",
   "dueDate",
   "total",
   "invoiceNumber",

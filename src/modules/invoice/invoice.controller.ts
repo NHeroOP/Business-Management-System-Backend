@@ -12,6 +12,7 @@ import {
 
 import { asyncHandler } from '@/shared/utils/asyncHandler.js';
 import { ApiResponse } from '@/shared/utils/ApiResponse.js';
+import { Types } from 'mongoose';
 
 export const createInvoice = asyncHandler(async (req: Request, res: Response) => {
   await createInvoiceService({
@@ -26,25 +27,74 @@ export const createInvoice = asyncHandler(async (req: Request, res: Response) =>
 });
 
 export const getInvoices = asyncHandler(async (req: Request, res: Response) => {
-  // Implementation for getting all invoices
+  const { email, name, sortBy = "createdAt", sortOrder = -1, page=1, limit=10 } = req.query;
+  const invoices = await findInvoices({
+    businessId: req.workspace!.businessId,
+    email: email as string,
+    name: name as string,
+    options: {
+      sortBy: sortBy as string,
+      sortOrder: parseInt(sortOrder as string) === 1 ? 1 : -1,
+      page: parseInt(page as string) || 1,
+      limit: parseInt(limit as string) || 10
+    }
+  });
+  return res.status(200).json(
+    new ApiResponse(200, invoices, "Invoices fetched successfully")
+  );
 });
 
 export const getInvoiceById = asyncHandler(async (req: Request, res: Response) => {
-  // Implementation for getting an invoice by ID
+  const invoice = await findInvoiceById({
+    invoiceId: req.params.invoiceId as string | Types.ObjectId,
+    businessId: req.workspace!.businessId
+  });
+
+  return res.status(200).json(
+    new ApiResponse(200, invoice, "Invoice fetched successfully")
+  );
 });
 
 export const updateInvoice = asyncHandler(async (req: Request, res: Response) => {
-  // Implementation for updating an invoice
+  await updateInvoiceService({
+    invoiceId: req.params.invoiceId as string | Types.ObjectId,
+    businessId: req.workspace!.businessId,
+    ...req.body
+  });
+
+  return res.status(200).json(
+    new ApiResponse(200, {}, "Invoice updated successfully")
+  );
 });
 
 export const deleteInvoice = asyncHandler(async (req: Request, res: Response) => {
-  // Implementation for deleting an invoice
+  await archiveInvoice({
+    invoiceId : req.params.invoiceId as string | Types.ObjectId,
+    businessId: req.workspace!.businessId
+  });
+
+  return res.status(200).json(
+    new ApiResponse(200, {}, "Invoice archived successfully")
+  );
 });
 
 export const updateInvoiceStatus = asyncHandler(async (req: Request, res: Response) => {
-  // Implementation for updating an invoice status
+  const { status } = req.body;
+  await changeInvoiceStatus({
+    invoiceId : req.params.invoiceId as string | Types.ObjectId,
+    businessId: req.workspace!.businessId,
+    status
+  });
+
+  return res.status(200).json(
+    new ApiResponse(200, {}, "Invoice status updated successfully")
+  );
 });
 
 export const downloadInvoicePdf = asyncHandler(async (req: Request, res: Response) => {
-  // Implementation for downloading an invoice as PDF
+  const invoice = await generateInvoicePdf({
+    invoiceId : req.params.invoiceId as string | Types.ObjectId,
+    businessId: req.workspace!.businessId,
+  });
+
 });

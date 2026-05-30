@@ -1,5 +1,5 @@
 import { InvoiceStatus, type INVOICE_STATUS_ENUM } from "@/consts.js";
-import { Schema, model, Types, type HydratedDocument, type AggregatePaginateModel } from "mongoose";
+import { Schema, model, Types, type HydratedDocument, type AggregatePaginateModel, type PopulatedDoc } from "mongoose";
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 export interface IInvoiceItem {
