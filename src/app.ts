@@ -31,6 +31,7 @@ app.use(cookieParser());
 
 app.use(passport.initialize());
 
+import userRouter from "./modules/user/user.route.js";
 import authRouter from "./modules/auth/auth.route.js";
 import clientRouter from "./modules/client/client.route.js";
 import invoiceRouter from "./modules/invoice/invoice.route.js";
@@ -39,6 +40,7 @@ import businessRouter from "./modules/business/business.route.js";
 import businessMemberRouter from "./modules/business-member/businessMember.route.js";
 
 app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/users", userRouter);
 app.use("/api/v1/clients", clientRouter);
 app.use("/api/v1/invoices", invoiceRouter);
 app.use("/api/v1/products", productRouter);

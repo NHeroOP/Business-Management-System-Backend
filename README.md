@@ -255,10 +255,11 @@ bun run start   # node dist/index.js
 | Module | Status |
 |--------|--------|
 | auth | ✅ Complete |
+| user routes | ✅ Complete|
 | business | ✅ Complete |
 | business-member | ✅ Complete |
 | client | ✅ Complete |
 | product | ✅ Complete |
 | invoice | 🔧 Partially complete — create/list/archive/status-change work; update and PDF in progress |
 | payment | 🔧 Model complete — service/routes in progress |
-| user routes | 🔧 Service complete — routes not yet mounted |
+
