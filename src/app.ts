@@ -1,7 +1,8 @@
+import cors from "cors";
 import express from "express";
 import cookieParser from "cookie-parser";
-import cors from "cors";
 import passport from "./shared/config/passport.js";
+
 
 export const app = express();
 

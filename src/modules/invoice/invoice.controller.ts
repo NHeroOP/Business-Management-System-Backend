@@ -110,9 +110,14 @@ export const updateInvoiceStatus = asyncHandler(
 
 export const downloadInvoicePdf = asyncHandler(
   async (req: Request, res: Response) => {
-    const invoice = await generateInvoicePdf({
+    const pdf = await generateInvoicePdf({
       invoiceId: req.params.invoiceId as string | Types.ObjectId,
       businessId: req.workspace!.businessId,
     });
+
+    return res
+    .contentType("application/pdf")
+    .attachment("invoice.pdf")
+    .send(pdf);
   },
 );

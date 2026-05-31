@@ -1,4 +1,8 @@
 import { startSession, Types } from "mongoose";
+import Handlebars from "handlebars";
+import puppeteer from "puppeteer";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 import { Client } from "../client/Client.model.js";
 import { Product } from "../product/Product.model.js";
@@ -9,6 +13,7 @@ import { ApiError } from "@/shared/utils/ApiError.js";
 import { allowedSortFields } from "./invoice.const.js";
 import { type InvoiceStatus } from "@/consts.js";
 import resend from "@/shared/config/resend.js";
+
 
 interface InvoiceItemInput {
   productId: Types.ObjectId | string;
@@ -52,8 +57,10 @@ type PopulatedClient = {
 interface UpdateInvoicePayload {
   invoiceId: Types.ObjectId | string;
   businessId: Types.ObjectId | string;
-  clientId?: Types.ObjectId | string;
-  items?: InvoiceItemInput[];
+  items?: {
+    productId: Types.ObjectId | string;
+    quantity: number;
+  }[];
   tax?: number;
   discount?: number;
   dueDate?: Date;
@@ -61,7 +68,7 @@ interface UpdateInvoicePayload {
 }
 
 export const createInvoice = async (
-  payload: createInvoicePayload,
+  payload: createInvoicePayload
 ): Promise<IInvoiceDocument> => {
   const { userId, businessId, clientId, items, discount, tax, dueDate, notes } =
     payload;
@@ -316,7 +323,7 @@ export const findInvoiceById = async ({ businessId, invoiceId }: IdPayload) => {
 };
 
 export const updateInvoice = async (payload: UpdateInvoicePayload) => {
-  const { businessId, invoiceId, discount, notes, dueDate } = payload;
+  const { businessId, invoiceId, discount, notes, dueDate, tax, items } = payload;
   if (!invoiceId) {
     throw new ApiError(400, "invoiceId is required");
   }
@@ -335,8 +342,86 @@ export const updateInvoice = async (payload: UpdateInvoicePayload) => {
     throw new ApiError(400, "Cannot update a cancelled invoice");
   }
 
-  if (invoice.status === "PAID") {
+  if (discount !== undefined) {
+    if (discount < 0) {
+      throw new ApiError(400, "Discount cannot be negative");
+    }
+    if (discount > 100) {
+      throw new ApiError(400, "Discount cannot be greater than 100");
+    }
+    invoice.discount = discount;
   }
+
+  if (notes !== undefined) {
+    invoice.notes = notes;
+  }
+
+  if (dueDate !== undefined) {
+    invoice.dueDate = dueDate;
+  }
+
+  if (tax !== undefined) {
+    invoice.tax = tax;
+  }
+
+  if (items?.length === 0) {
+    throw new ApiError(400, "Invoice must have at least one item");
+  }
+  
+  if (items) { 
+    for (const item of items) {
+      if (item.quantity <= 0) {
+        throw new ApiError(400, "Item quantity must be greater than zero");
+      }
+      if (!item.productId) {
+        throw new ApiError(400, "Item productId is required");
+      }
+    }
+
+    const products = await Product.find({
+      _id: { $in: items.map((item) => item.productId) },
+      businessId,
+      isArchived: false,
+    })
+      .select("_id name price")
+      .lean();
+
+    if (products.length !== items.length) {
+      throw new ApiError(400, "One or more products not found");
+    }
+
+    const productMap = new Map(
+      products.map((product) => [product._id.toString(), product]),
+    );
+
+    const invoiceItems = items.map((item) => {
+      const product = productMap.get(item.productId.toString());
+      if (!product) {
+        throw new ApiError(400, `Product with id ${item.productId} not found`);
+      }
+      return {
+        productId: product._id,
+        name: product.name,
+        quantity: item.quantity,
+        price: product.price,
+        total: product.price * item.quantity,
+      };
+    });
+
+    invoice.items = invoiceItems;
+    const subtotal = invoiceItems.reduce((sum, item) => sum + item.total, 0);
+    const totalAfterDiscount =
+      subtotal - (invoice.discount ? subtotal * (invoice.discount / 100) : 0);
+    const totalAfterTax =
+      totalAfterDiscount +
+      (invoice.tax ? totalAfterDiscount * (invoice.tax / 100) : 0);
+    invoice.subtotal = subtotal;
+    invoice.total = totalAfterTax;
+  }
+
+  await invoice.save();
+
+  return invoice;
 };
 
 export const archiveInvoice = async ({ invoiceId, businessId }: IdPayload) => {
@@ -411,10 +496,11 @@ export const changeInvoiceStatus = async ({
   return invoice;
 };
 
+
 export const generateInvoicePdf = async ({
   invoiceId,
   businessId,
-}: IdPayload) => {
+}: IdPayload)  => {
   if (!invoiceId) {
     throw new ApiError(400, "invoiceId is required");
   }
@@ -427,10 +513,42 @@ export const generateInvoicePdf = async ({
     .populate("client", "name email phone")
     .populate("items.productId", "name description price image")
     .lean();
+  
 
   if (!invoice) {
     throw new ApiError(404, "Invoice not found");
   }
 
-  return invoice;
+
+  const templatePath = path.join(
+    process.cwd(),
+    "src/modules/invoice/templates/invoice.hbs",
+  );
+
+  const source = await fs.readFile(
+    templatePath,
+    "utf-8",
+  );
+  const template = Handlebars.compile(source);
+
+  const html = template(invoice);
+
+  const browser = await puppeteer.launch();
+
+  try {
+    const page = await browser.newPage();
+
+    await page.setContent(html, {
+      waitUntil: "load",
+    });
+
+    const pdf = await page.pdf({
+      format: "A4",
+      printBackground: true,
+    });
+
+    return pdf;
+  } finally {
+    await browser.close();
+  }
 };
