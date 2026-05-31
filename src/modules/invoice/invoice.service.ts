@@ -361,7 +361,7 @@ export const archiveInvoice = async ({ invoiceId, businessId }: IdPayload) => {
   return invoice;
 };
 
-export const changeINVOICE_STATUS = async ({
+export const changeInvoiceStatus = async ({
   invoiceId,
   businessId,
   status,

@@ -6,7 +6,7 @@ import {
   getInvoiceById,
   updateInvoice,
   deleteInvoice,
-  updateINVOICE_STATUS,
+  updateInvoiceStatus,
   downloadInvoicePdf,
 } from "./invoice.controller.js";
 
@@ -30,7 +30,7 @@ router
   .patch(updateInvoice)
   .delete(deleteInvoice);
 
-router.route("/:id/status").patch(updateINVOICE_STATUS);
+router.route("/:id/status").patch(updateInvoiceStatus);
 
 router.route("/:id/pdf").get(downloadInvoicePdf);
 

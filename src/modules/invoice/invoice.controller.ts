@@ -6,7 +6,7 @@ import {
   findInvoiceById,
   updateInvoice as updateInvoiceService,
   archiveInvoice,
-  changeINVOICE_STATUS,
+  changeInvoiceStatus,
   generateInvoicePdf,
 } from "./invoice.service.js";
 
@@ -93,10 +93,10 @@ export const deleteInvoice = asyncHandler(
   },
 );
 
-export const updateINVOICE_STATUS = asyncHandler(
+export const updateInvoiceStatus = asyncHandler(
   async (req: Request, res: Response) => {
     const { status } = req.body;
-    await changeINVOICE_STATUS({
+    await changeInvoiceStatus({
       invoiceId: req.params.invoiceId as string | Types.ObjectId,
       businessId: req.workspace!.businessId,
       status,
