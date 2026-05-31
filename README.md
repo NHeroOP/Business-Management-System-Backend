@@ -21,18 +21,18 @@ A multi-tenant REST API for managing businesses, clients, products, and invoices
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Runtime | Node.js (ESM) |
-| Language | TypeScript (strict) |
-| Framework | Express 5 |
-| Database | MongoDB + Mongoose 9 |
-| Auth | JWT + Passport.js (Google OAuth) |
-| File Storage | Cloudinary |
-| Email | Resend |
-| PDF Templating | Handlebars *(wiring in progress)* |
-| Build | tsc + tsc-alias |
-| Dev | tsx watch |
+| Layer          | Technology                        |
+| -------------- | --------------------------------- |
+| Runtime        | Node.js (ESM)                     |
+| Language       | TypeScript (strict)               |
+| Framework      | Express 5                         |
+| Database       | MongoDB + Mongoose 9              |
+| Auth           | JWT + Passport.js (Google OAuth)  |
+| File Storage   | Cloudinary                        |
+| Email          | Resend                            |
+| PDF Templating | Handlebars _(wiring in progress)_ |
+| Build          | tsc + tsc-alias                   |
+| Dev            | tsx watch                         |
 
 ---
 
@@ -78,7 +78,7 @@ Invoice numbers follow the format `INV-{YEAR}-{SEQUENCE:0000}` (e.g. `INV-2025-0
 src/
 ├── index.ts                  # Entry point
 ├── app.ts                    # Express app, middleware, route mounting
-├── consts.ts                 # Shared enums (Business_Roles, Product_Type, InvoiceStatus)
+├── consts.ts                 # Shared enums (BUSINESS_ROLE, PRODUCT_TYPE, INVOICE_STATUS)
 ├── modules/
 │   ├── auth/                 # JWT auth, Google OAuth, password reset
 │   ├── user/                 # User model & profile
@@ -113,70 +113,70 @@ All endpoints are prefixed with `/api/v1`. All responses use a consistent envelo
 
 ### Authentication — `/auth`
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `/auth/register` | — | Register with avatar upload |
-| POST | `/auth/login` | — | Login; sets JWT cookies |
-| POST | `/auth/logout` | JWT | Clears JWT cookies |
-| GET | `/auth/me` | JWT | Current user profile |
-| POST | `/auth/forgot-password` | — | Send password reset email |
-| POST | `/auth/reset-password` | — | Reset password with token |
-| GET | `/auth/google` | — | Google OAuth redirect |
-| GET | `/auth/google/callback` | — | Google OAuth callback |
+| Method | Endpoint                | Auth | Description                 |
+| ------ | ----------------------- | ---- | --------------------------- |
+| POST   | `/auth/register`        | —    | Register with avatar upload |
+| POST   | `/auth/login`           | —    | Login; sets JWT cookies     |
+| POST   | `/auth/logout`          | JWT  | Clears JWT cookies          |
+| GET    | `/auth/me`              | JWT  | Current user profile        |
+| POST   | `/auth/forgot-password` | —    | Send password reset email   |
+| POST   | `/auth/reset-password`  | —    | Reset password with token   |
+| GET    | `/auth/google`          | —    | Google OAuth redirect       |
+| GET    | `/auth/google/callback` | —    | Google OAuth callback       |
 
 ### Businesses — `/businesses`
 
-| Method | Endpoint | Role | Description |
-|--------|----------|------|-------------|
-| POST | `/businesses` | JWT | Create business (auto-creates OWNER membership) |
-| GET | `/businesses/:id` | JWT | Get business details |
-| PATCH | `/businesses/:id` | OWNER | Update business info |
-| PATCH | `/businesses/:id/logo` | OWNER | Update logo |
+| Method | Endpoint               | Role  | Description                                     |
+| ------ | ---------------------- | ----- | ----------------------------------------------- |
+| POST   | `/businesses`          | JWT   | Create business (auto-creates OWNER membership) |
+| GET    | `/businesses/:id`      | JWT   | Get business details                            |
+| PATCH  | `/businesses/:id`      | OWNER | Update business info                            |
+| PATCH  | `/businesses/:id/logo` | OWNER | Update logo                                     |
 
 ### Business Members — `/business-members`
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/business-members` | List members |
-| POST | `/business-members` | Add member |
-| PATCH | `/business-members/:memberId/role` | Change role |
-| DELETE | `/business-members/:memberId` | Remove member (soft delete) |
+| Method | Endpoint                           | Description                 |
+| ------ | ---------------------------------- | --------------------------- |
+| GET    | `/business-members`                | List members                |
+| POST   | `/business-members`                | Add member                  |
+| PATCH  | `/business-members/:memberId/role` | Change role                 |
+| DELETE | `/business-members/:memberId`      | Remove member (soft delete) |
 
 ### Clients — `/clients`
 
-| Method | Endpoint | Query Params | Description |
-|--------|----------|-------------|-------------|
-| GET | `/clients` | `page, limit, search` | Paginated list |
-| POST | `/clients` | — | Create client |
-| GET | `/clients/:id` | — | Get client |
-| PATCH | `/clients/:id` | — | Update client |
-| DELETE | `/clients/:id` | — | Archive client |
+| Method | Endpoint       | Query Params          | Description    |
+| ------ | -------------- | --------------------- | -------------- |
+| GET    | `/clients`     | `page, limit, search` | Paginated list |
+| POST   | `/clients`     | —                     | Create client  |
+| GET    | `/clients/:id` | —                     | Get client     |
+| PATCH  | `/clients/:id` | —                     | Update client  |
+| DELETE | `/clients/:id` | —                     | Archive client |
 
 ### Products — `/products`
 
 Requires `x-business-id` header.
 
-| Method | Endpoint | Query Params | Description |
-|--------|----------|-------------|-------------|
-| GET | `/products` | `page, limit, search, sortBy` | Paginated list |
-| POST | `/products` | — | Create product with image upload |
-| GET | `/products/:id` | — | Get product |
-| PATCH | `/products/:id` | — | Update product |
-| DELETE | `/products/:id` | — | Archive product |
+| Method | Endpoint        | Query Params                  | Description                      |
+| ------ | --------------- | ----------------------------- | -------------------------------- |
+| GET    | `/products`     | `page, limit, search, sortBy` | Paginated list                   |
+| POST   | `/products`     | —                             | Create product with image upload |
+| GET    | `/products/:id` | —                             | Get product                      |
+| PATCH  | `/products/:id` | —                             | Update product                   |
+| DELETE | `/products/:id` | —                             | Archive product                  |
 
 ### Invoices — `/invoices`
 
 Requires `x-business-id` header.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/invoices` | Paginated list with client search |
-| POST | `/invoices` | Create invoice (atomic number generation) |
-| GET | `/invoices/:id` | Get invoice with populated client |
-| PATCH | `/invoices/:id` | Update invoice *(in progress)* |
-| DELETE | `/invoices/:id` | Archive invoice |
-| PATCH | `/invoices/:id/status` | Change status (`DRAFT → SENT → PAID / OVERDUE / CANCELLED`) |
-| GET | `/invoices/:id/pdf` | Download PDF *(in progress)* |
+| Method | Endpoint               | Description                                                 |
+| ------ | ---------------------- | ----------------------------------------------------------- |
+| GET    | `/invoices`            | Paginated list with client search                           |
+| POST   | `/invoices`            | Create invoice (atomic number generation)                   |
+| GET    | `/invoices/:id`        | Get invoice with populated client                           |
+| PATCH  | `/invoices/:id`        | Update invoice _(in progress)_                              |
+| DELETE | `/invoices/:id`        | Archive invoice                                             |
+| PATCH  | `/invoices/:id/status` | Change status (`DRAFT → SENT → PAID / OVERDUE / CANCELLED`) |
+| GET    | `/invoices/:id/pdf`    | Download PDF _(in progress)_                                |
 
 ---
 
@@ -201,8 +201,8 @@ All models use soft deletes (`isArchived: true`) — no hard deletes anywhere.
 - Node.js 18+ or Bun
 - MongoDB (replica set required for invoice transactions — use Atlas free tier or a local replica set)
 - Cloudinary account
-- Google OAuth credentials *(optional)*
-- Resend account *(optional, for password reset emails)*
+- Google OAuth credentials _(optional)_
+- Resend account _(optional, for password reset emails)_
 
 ### Setup
 
@@ -219,7 +219,7 @@ Server starts on `http://localhost:3000`.
 
 ### Environment Variables
 
-```env
+````env
 PORT=3000
 NODE_ENV=development
 MONGODB_URI=mongodb://localhost:27017/business-management
@@ -246,20 +246,19 @@ BASE_URL=https://your-production-domain.com
 ```bash
 bun run build   # tsc + tsc-alias → dist/
 bun run start   # node dist/index.js
-```
+````
 
 ---
 
 ## Module Status
 
-| Module | Status |
-|--------|--------|
-| auth | ✅ Complete |
-| user routes | ✅ Complete|
-| business | ✅ Complete |
-| business-member | ✅ Complete |
-| client | ✅ Complete |
-| product | ✅ Complete |
-| invoice | 🔧 Partially complete — create/list/archive/status-change work; update and PDF in progress |
-| payment | 🔧 Model complete — service/routes in progress |
-
+| Module          | Status                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------ |
+| auth            | ✅ Complete                                                                                |
+| user routes     | ✅ Complete                                                                                |
+| business        | ✅ Complete                                                                                |
+| business-member | ✅ Complete                                                                                |
+| client          | ✅ Complete                                                                                |
+| product         | ✅ Complete                                                                                |
+| invoice         | 🔧 Partially complete — create/list/archive/status-change work; update and PDF in progress |
+| payment         | 🔧 Model complete — service/routes in progress                                             |

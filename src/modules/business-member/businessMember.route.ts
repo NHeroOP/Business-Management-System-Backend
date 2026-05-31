@@ -4,41 +4,44 @@ import {
   getMembers,
   inviteMember,
   removeMember,
-  updateMemberRole
+  updateMemberRole,
 } from "./businessMember.controller.js";
 
 import { verifyJWT } from "@/shared/middlewares/auth.middleware.js";
 import { requireRole } from "@/shared/middlewares/rbac.middleware.js";
-import { Business_Roles } from "@/consts.js";
+import { BUSINESS_ROLE } from "@/consts.js";
 import { resolveWorkspace } from "@/shared/middlewares/workspace.middleware.js";
 
-
 const router = Router({
-  mergeParams: true
+  mergeParams: true,
 });
 
 router.use(verifyJWT, resolveWorkspace);
 
-router.route("/")
+router
+  .route("/")
   .get(
-    requireRole([Business_Roles.OWNER, Business_Roles.ADMIN, Business_Roles.EMPLOYEE]),
-    getMembers
+    requireRole([
+      BUSINESS_ROLE.OWNER,
+      BUSINESS_ROLE.ADMIN,
+      BUSINESS_ROLE.EMPLOYEE,
+    ]),
+    getMembers,
   )
-  .post(
-    requireRole([Business_Roles.OWNER, Business_Roles.ADMIN]),
-    inviteMember
-  );
+  .post(requireRole([BUSINESS_ROLE.OWNER, BUSINESS_ROLE.ADMIN]), inviteMember);
 
-router.route("/:memberId")
+router
+  .route("/:memberId")
   .delete(
-    requireRole([Business_Roles.OWNER, Business_Roles.ADMIN]),
-    removeMember
+    requireRole([BUSINESS_ROLE.OWNER, BUSINESS_ROLE.ADMIN]),
+    removeMember,
   );
 
-router.route("/:memberId/role")
+router
+  .route("/:memberId/role")
   .patch(
-    requireRole([Business_Roles.OWNER, Business_Roles.ADMIN]),
-    updateMemberRole
+    requireRole([BUSINESS_ROLE.OWNER, BUSINESS_ROLE.ADMIN]),
+    updateMemberRole,
   );
 
 export default router;

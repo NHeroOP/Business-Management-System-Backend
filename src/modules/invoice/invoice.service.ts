@@ -1,15 +1,14 @@
-import { startSession, Types } from "mongoose"
+import { startSession, Types } from "mongoose";
 
 import { Client } from "../client/Client.model.js";
 import { Product } from "../product/Product.model.js";
-import { Invoice, type IInvoiceDocument } from "./Invoice.model.js"
+import { Invoice, type IInvoiceDocument } from "./Invoice.model.js";
 import { InvoiceCounter } from "../invoiceCounter/InvoiceCounter.model.js";
 
-import { ApiError } from "@/shared/utils/ApiError.js"
+import { ApiError } from "@/shared/utils/ApiError.js";
 import { allowedSortFields } from "./invoice.const.js";
-import { type INVOICE_STATUS_ENUM } from "@/consts.js";
+import { type InvoiceStatus } from "@/consts.js";
 import resend from "@/shared/config/resend.js";
-
 
 interface InvoiceItemInput {
   productId: Types.ObjectId | string;
@@ -18,7 +17,7 @@ interface InvoiceItemInput {
 
 interface createInvoicePayload {
   userId: Types.ObjectId | string;
-  businessId: Types.ObjectId | string ;
+  businessId: Types.ObjectId | string;
   clientId: Types.ObjectId | string;
   items: InvoiceItemInput[];
   tax?: number;
@@ -28,7 +27,7 @@ interface createInvoicePayload {
 }
 
 interface FindInvoicesPayload {
-  businessId: Types.ObjectId | string,
+  businessId: Types.ObjectId | string;
   email?: string;
   name?: string;
   options: {
@@ -36,7 +35,7 @@ interface FindInvoicesPayload {
     limit?: number;
     sortBy?: string;
     sortOrder?: 1 | -1;
-  }
+  };
 }
 
 interface IdPayload {
@@ -48,7 +47,7 @@ type PopulatedClient = {
   name: string | undefined;
   email: string | undefined;
   phone: string | undefined;
-}
+};
 
 interface UpdateInvoicePayload {
   invoiceId: Types.ObjectId | string;
@@ -62,9 +61,10 @@ interface UpdateInvoicePayload {
 }
 
 export const createInvoice = async (
-  payload: createInvoicePayload
+  payload: createInvoicePayload,
 ): Promise<IInvoiceDocument> => {
-  const { userId, businessId, clientId, items, discount, tax, dueDate, notes } = payload;
+  const { userId, businessId, clientId, items, discount, tax, dueDate, notes } =
+    payload;
 
   if (items.length === 0) {
     throw new ApiError(400, "Invoice must have at least one item");
@@ -72,13 +72,13 @@ export const createInvoice = async (
 
   for (const item of items) {
     if (item.quantity <= 0) {
-      throw new ApiError(400, "Item quantity must be greater than zero" );
+      throw new ApiError(400, "Item quantity must be greater than zero");
     }
     if (!item.productId) {
       throw new ApiError(400, "Item productId is required");
     }
   }
-  
+
   if (discount !== undefined) {
     if (discount < 0) {
       throw new ApiError(400, "Discount cannot be negative");
@@ -105,39 +105,40 @@ export const createInvoice = async (
     _id: clientId,
     businessId,
     isArchived: false,
-  })
+  });
 
   if (!clientExist) {
     throw new ApiError(404, "Client not found");
   }
 
-  const mergedItems = Object.values(items.reduce((acc, item): Record<string, InvoiceItemInput> => {
-    if (acc[item.productId.toString()]) {
-      acc[item.productId.toString()]!.quantity += item.quantity;
-    } else {
-      acc[item.productId.toString()] = { ...item };
-    }
-    return acc;
-  }, {}))
+  const mergedItems = Object.values(
+    items.reduce((acc, item): Record<string, InvoiceItemInput> => {
+      if (acc[item.productId.toString()]) {
+        acc[item.productId.toString()]!.quantity += item.quantity;
+      } else {
+        acc[item.productId.toString()] = { ...item };
+      }
+      return acc;
+    }, {}),
+  );
 
   const products = await Product.find({
-    _id: { $in: mergedItems.map(item => item.productId) },
+    _id: { $in: mergedItems.map((item) => item.productId) },
     businessId,
     isArchived: false,
-  }).select("_id name price").lean();
+  })
+    .select("_id name price")
+    .lean();
 
   if (products.length !== mergedItems.length) {
     throw new ApiError(400, "One or more products not found");
   }
 
   const productMap = new Map(
-    products.map(product => [
-      product._id.toString(),
-      product,
-    ])
+    products.map((product) => [product._id.toString(), product]),
   );
-  
-  const invoiceItems = mergedItems.map(item => {
+
+  const invoiceItems = mergedItems.map((item) => {
     const product = productMap.get(item.productId.toString());
     if (!product) {
       throw new ApiError(400, `Product with id ${item.productId} not found`);
@@ -147,15 +148,17 @@ export const createInvoice = async (
       name: product.name,
       quantity: item.quantity,
       price: product.price,
-      total: product.price * item.quantity
-    }
-  })
+      total: product.price * item.quantity,
+    };
+  });
 
   const subtotal = invoiceItems.reduce((sum, item) => sum + item.total, 0);
-  const totalAfterDiscount = subtotal - (discount !== undefined ? (subtotal * (discount / 100)) : 0);
-  const totalAfterTax = totalAfterDiscount + (tax !== undefined ? (totalAfterDiscount * (tax / 100)) : 0);
+  const totalAfterDiscount =
+    subtotal - (discount !== undefined ? subtotal * (discount / 100) : 0);
+  const totalAfterTax =
+    totalAfterDiscount +
+    (tax !== undefined ? totalAfterDiscount * (tax / 100) : 0);
   const year = new Date().getFullYear();
-
 
   let invoice: IInvoiceDocument | undefined;
 
@@ -178,35 +181,44 @@ export const createInvoice = async (
         upsert: true,
       },
     ).session(session);
-  
+
     if (!counter) {
       throw new ApiError(500, "Failed to generate invoice number");
     }
-  
+
     const invoiceNumber = `INV-${year}-${String(counter.sequence).padStart(4, "0")}`;
-  
-    [invoice] = await Invoice.create([{
-      businessId,
-      createdBy: userId,
-      client: clientId,
-      items: invoiceItems,
-      subtotal,
-      total: totalAfterTax,
-      invoiceNumber,
-      ...(tax !== undefined && { tax }),
-      ...(discount !== undefined && { discount }),
-      ...(dueDate && { dueDate }),
-      ...(notes && { notes }),
-    }], { session });
-    
+
+    [invoice] = await Invoice.create(
+      [
+        {
+          businessId,
+          createdBy: userId,
+          client: clientId,
+          items: invoiceItems,
+          subtotal,
+          total: totalAfterTax,
+          invoiceNumber,
+          ...(tax !== undefined && { tax }),
+          ...(discount !== undefined && { discount }),
+          ...(dueDate && { dueDate }),
+          ...(notes && { notes }),
+        },
+      ],
+      { session },
+    );
+
     await session.commitTransaction();
-    
-  }
-  catch (error: any) {
+  } catch (error: any) {
     await session.abortTransaction();
-    throw error instanceof ApiError ? error :  new ApiError(500, error.message || "Failed to create invoice", [], error instanceof Error ? error.stack : undefined);
-  }
-  finally {
+    throw error instanceof ApiError
+      ? error
+      : new ApiError(
+          500,
+          error.message || "Failed to create invoice",
+          [],
+          error instanceof Error ? error.stack : undefined,
+        );
+  } finally {
     await session.endSession();
   }
 
@@ -215,21 +227,21 @@ export const createInvoice = async (
   }
 
   return invoice;
-}
+};
 
-export const findInvoices = async (
-  payload: FindInvoicesPayload
-) => {
+export const findInvoices = async (payload: FindInvoicesPayload) => {
   const { businessId, email, name, options } = payload;
 
-  const sortBy = allowedSortFields.includes(options.sortBy ?? "") ? options.sortBy! : "issuedDate";
+  const sortBy = allowedSortFields.includes(options.sortBy ?? "")
+    ? options.sortBy!
+    : "issuedDate";
   const sortOrder = options.sortOrder ?? -1;
 
   const invoiceAggregate = Invoice.aggregate([
     {
       $match: {
         businessId: new Types.ObjectId(businessId),
-      }
+      },
     },
     {
       $lookup: {
@@ -251,9 +263,9 @@ export const findInvoices = async (
     {
       $addFields: {
         client: {
-          $arrayElemAt: ["$client", 0]
-        }
-      }
+          $arrayElemAt: ["$client", 0],
+        },
+      },
     },
     {
       $match: {
@@ -265,28 +277,24 @@ export const findInvoices = async (
       $sort: {
         [sortBy]: sortOrder,
       },
-    }, 
+    },
     {
       $project: {
         metadata: 0,
         __v: 0,
-      }
-    }
-  ])
-
+      },
+    },
+  ]);
 
   const invoices = await Invoice.aggregatePaginate(invoiceAggregate, {
     page: options.page || 1,
-    limit: options.limit || 10
-  })
-
+    limit: options.limit || 10,
+  });
 
   return invoices;
-}
+};
 
-export const findInvoiceById = async (
-  { businessId, invoiceId }: IdPayload
-) => {
+export const findInvoiceById = async ({ businessId, invoiceId }: IdPayload) => {
   if (!invoiceId) {
     throw new ApiError(400, "invoiceId is required");
   }
@@ -295,19 +303,20 @@ export const findInvoiceById = async (
     _id: invoiceId,
     businessId,
     isArchived: false,
-  }).populate("client", "name email phone").lean().select("-metadata -__v");
+  })
+    .populate("client", "name email phone")
+    .lean()
+    .select("-metadata -__v");
 
   if (!invoice) {
     throw new ApiError(404, "Invoice not found");
   }
 
   return invoice;
-}
+};
 
-export const updateInvoice = async (
-  payload: UpdateInvoicePayload
-) => {
-  const { businessId, invoiceId, discount, notes, dueDate} = payload;
+export const updateInvoice = async (payload: UpdateInvoicePayload) => {
+  const { businessId, invoiceId, discount, notes, dueDate } = payload;
   if (!invoiceId) {
     throw new ApiError(400, "invoiceId is required");
   }
@@ -321,20 +330,16 @@ export const updateInvoice = async (
   if (!invoice) {
     throw new ApiError(404, "Invoice not found");
   }
-  
+
   if (invoice.status === "CANCELLED") {
     throw new ApiError(400, "Cannot update a cancelled invoice");
   }
 
   if (invoice.status === "PAID") {
-    
   }
+};
 
-}
-
-export const archiveInvoice = async (
-  { invoiceId, businessId }: IdPayload
-) => {
+export const archiveInvoice = async ({ invoiceId, businessId }: IdPayload) => {
   if (!invoiceId) {
     throw new ApiError(400, "invoiceId is required");
   }
@@ -346,7 +351,7 @@ export const archiveInvoice = async (
       isArchived: false,
     },
     { isArchived: true },
-    { "returnDocument": "after" }
+    { returnDocument: "after" },
   );
 
   if (!invoice) {
@@ -354,11 +359,13 @@ export const archiveInvoice = async (
   }
 
   return invoice;
-}
+};
 
-export const changeInvoiceStatus = async (
-  { invoiceId, businessId, status }: IdPayload & {status: INVOICE_STATUS_ENUM}
-) => {
+export const changeINVOICE_STATUS = async ({
+  invoiceId,
+  businessId,
+  status,
+}: IdPayload & { status: InvoiceStatus }) => {
   if (!invoiceId) {
     throw new ApiError(400, "invoiceId is required");
   }
@@ -381,7 +388,7 @@ export const changeInvoiceStatus = async (
     throw new ApiError(404, "Invoice not found");
   }
 
-  if (invoice.status = "CANCELLED") {
+  if ((invoice.status = "CANCELLED")) {
     throw new ApiError(400, "Cannot change status of a cancelled invoice");
   }
 
@@ -392,31 +399,31 @@ export const changeInvoiceStatus = async (
   invoice.status = status;
   await invoice.save();
 
-  if (status === "SENT" && invoice.client && invoice.client.email) { 
+  if (status === "SENT" && invoice.client && invoice.client.email) {
     await resend.emails.send({
       from: "Invoice App <send@no-reply.nhero.me>",
       to: invoice.client.email,
       subject: `Invoice ${invoice.invoiceNumber} from Your Company`,
-      html: ""
-    })
+      html: "",
+    });
   }
 
   return invoice;
-}
+};
 
-export const generateInvoicePdf = async (
-  { invoiceId, businessId }: IdPayload
-) => {
+export const generateInvoicePdf = async ({
+  invoiceId,
+  businessId,
+}: IdPayload) => {
   if (!invoiceId) {
     throw new ApiError(400, "invoiceId is required");
   }
 
-  const invoice = await Invoice
-    .findOne({
-      _id: invoiceId,
-      businessId,
-      isArchived: false,
-    })
+  const invoice = await Invoice.findOne({
+    _id: invoiceId,
+    businessId,
+    isArchived: false,
+  })
     .populate("client", "name email phone")
     .populate("items.productId", "name description price image")
     .lean();
@@ -426,4 +433,4 @@ export const generateInvoicePdf = async (
   }
 
   return invoice;
-}
+};

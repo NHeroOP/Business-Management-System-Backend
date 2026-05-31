@@ -1,12 +1,18 @@
-import { Product_Type, type PRODUCT_TYPE_ENUM } from "@/consts.js";
-import { Schema, model, Types, type HydratedDocument, type AggregatePaginateModel } from "mongoose";
+import { PRODUCT_TYPE, type ProductType } from "@/consts.js";
+import {
+  Schema,
+  model,
+  Types,
+  type HydratedDocument,
+  type AggregatePaginateModel,
+} from "mongoose";
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 export interface IProduct {
   businessId: Types.ObjectId;
   name: string;
   description?: string;
-  type: PRODUCT_TYPE_ENUM;
+  type: ProductType;
   price: number;
   stockQuantity: number;
   sku?: string;
@@ -27,7 +33,7 @@ const imageSchema = new Schema(
     url: String,
     publicId: String,
   },
-  { _id: false }
+  { _id: false },
 );
 
 const productSchema = new Schema<IProduct>(
@@ -49,8 +55,8 @@ const productSchema = new Schema<IProduct>(
 
     type: {
       type: String,
-      enum: Object.values(Product_Type),
-      default: Product_Type.PRODUCT,
+      enum: Object.values(PRODUCT_TYPE),
+      default: PRODUCT_TYPE.PRODUCT,
     },
 
     price: {
@@ -92,7 +98,7 @@ const productSchema = new Schema<IProduct>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 productSchema.index({
@@ -103,4 +109,7 @@ productSchema.index({
 
 productSchema.plugin(mongooseAggregatePaginate);
 
-export const Product = model<IProduct, AggregatePaginateModel<IProduct>>("Product", productSchema);
+export const Product = model<IProduct, AggregatePaginateModel<IProduct>>(
+  "Product",
+  productSchema,
+);

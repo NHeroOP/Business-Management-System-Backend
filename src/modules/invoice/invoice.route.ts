@@ -6,35 +6,32 @@ import {
   getInvoiceById,
   updateInvoice,
   deleteInvoice,
-  updateInvoiceStatus,
+  updateINVOICE_STATUS,
   downloadInvoicePdf,
 } from "./invoice.controller.js";
 
 import { verifyJWT } from "@/shared/middlewares/auth.middleware.js";
 import { resolveWorkspace } from "@/shared/middlewares/workspace.middleware.js";
 import { requireRole } from "@/shared/middlewares/rbac.middleware.js";
-import { Business_Roles } from "@/consts.js";
+import { BUSINESS_ROLE } from "@/consts.js";
 
 const router = Router();
 router.use(
   verifyJWT,
   resolveWorkspace,
-  requireRole(Object.values(Business_Roles))
+  requireRole(Object.values(BUSINESS_ROLE)),
 );
 
-router.route("/")
-  .get(getInvoices)
-  .post(createInvoice);
+router.route("/").get(getInvoices).post(createInvoice);
 
-router.route("/:id")
+router
+  .route("/:id")
   .get(getInvoiceById)
   .patch(updateInvoice)
   .delete(deleteInvoice);
 
-router.route("/:id/status")
-  .patch(updateInvoiceStatus);
+router.route("/:id/status").patch(updateINVOICE_STATUS);
 
-router.route("/:id/pdf")
-  .get(downloadInvoicePdf);
+router.route("/:id/pdf").get(downloadInvoicePdf);
 
 export default router;

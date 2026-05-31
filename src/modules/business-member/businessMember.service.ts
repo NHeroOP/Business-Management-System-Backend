@@ -2,7 +2,7 @@ import { Types } from "mongoose";
 
 import { BusinessMember, type IBusinessMemberDocument } from "./BusinessMember.model.js";
 
-import type { ROLE_ENUM } from "@/consts.js";
+import type { BusinessRole } from "@/consts.js";
 import { ApiError } from "@/shared/utils/ApiError.js";
 
 interface ReqParams {
@@ -13,13 +13,13 @@ interface ReqParams {
 
 interface AddMemberParams
   extends ReqParams {
-  role: ROLE_ENUM;
+  role: BusinessRole;
   // permissions?: string[];
 }
 
 interface ChangeMemberRoleParams
   extends ReqParams {
-  role: ROLE_ENUM;
+  role: BusinessRole;
 }
 
 export const addBusinessMember = async (

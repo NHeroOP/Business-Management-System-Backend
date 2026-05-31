@@ -3,9 +3,9 @@ import type { NextFunction, Request, Response } from "express";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
-import type { ROLE_ENUM } from "@/consts.js";
+import type { BusinessRole } from "@/consts.js";
 
-export const requireRole = (roles: ROLE_ENUM[] | ROLE_ENUM) => asyncHandler(
+export const requireRole = (roles: BusinessRole[] | BusinessRole) => asyncHandler(
   async (req: Request, _: Response, next: NextFunction) => {
     if (!req.user) {
       throw new ApiError(401, "Unauthorized");

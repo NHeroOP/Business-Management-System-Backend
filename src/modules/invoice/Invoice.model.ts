@@ -1,5 +1,12 @@
-import { InvoiceStatus, type INVOICE_STATUS_ENUM } from "@/consts.js";
-import { Schema, model, Types, type HydratedDocument, type AggregatePaginateModel, type PopulatedDoc } from "mongoose";
+import { INVOICE_STATUS, type InvoiceStatus } from "@/consts.js";
+import {
+  Schema,
+  model,
+  Types,
+  type HydratedDocument,
+  type AggregatePaginateModel,
+  type PopulatedDoc,
+} from "mongoose";
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 export interface IInvoiceItem {
@@ -20,7 +27,7 @@ export interface IInvoice {
   discount: number;
   total: number;
   currency: string;
-  status: INVOICE_STATUS_ENUM;
+  status: InvoiceStatus;
   dueDate?: Date;
   issuedDate: Date;
   notes?: string;
@@ -61,7 +68,7 @@ const invoiceItemSchema = new Schema<IInvoiceItem>(
   },
   {
     _id: false,
-  }
+  },
 );
 
 const invoiceSchema = new Schema<IInvoice>(
@@ -122,8 +129,8 @@ const invoiceSchema = new Schema<IInvoice>(
 
     status: {
       type: String,
-      enum: Object.values(InvoiceStatus),
-      default: InvoiceStatus.DRAFT,
+      enum: Object.values(INVOICE_STATUS),
+      default: INVOICE_STATUS.DRAFT,
       index: true,
     },
 
@@ -135,7 +142,7 @@ const invoiceSchema = new Schema<IInvoice>(
         const today = new Date();
         today.setUTCHours(0, 0, 0, 0);
         return today;
-      }
+      },
     },
 
     notes: String,
@@ -160,7 +167,7 @@ const invoiceSchema = new Schema<IInvoice>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 invoiceSchema.index({
@@ -170,6 +177,9 @@ invoiceSchema.index({
   createdAt: -1,
 });
 
-invoiceSchema.plugin(mongooseAggregatePaginate)
+invoiceSchema.plugin(mongooseAggregatePaginate);
 
-export const Invoice = model<IInvoice, AggregatePaginateModel<IInvoice>>("Invoice", invoiceSchema);
+export const Invoice = model<IInvoice, AggregatePaginateModel<IInvoice>>(
+  "Invoice",
+  invoiceSchema,
+);
