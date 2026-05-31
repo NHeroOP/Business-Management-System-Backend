@@ -48,5 +48,5 @@ export const PAYMENT_STATUS = {
   FAILED: "FAILED",
 } as const;
 
-export type PaymentStatus =
+  export type PaymentStatus =
   (typeof PAYMENT_STATUS)[keyof typeof PAYMENT_STATUS];

@@ -1,24 +1,18 @@
-import {  Schema, model, Types, type HydratedDocument } from "mongoose";
+import { PAYMENT_METHOD, PAYMENT_STATUS, type PaymentMethod, type PaymentStatus } from "@/consts.js";
+import {  Schema, model, Types, type HydratedDocument, type AggregatePaginateModel } from "mongoose";
+import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 export interface IPayment {
   businessId: Types.ObjectId;
   invoiceId: Types.ObjectId;
   amount: number;
-  method:
-    | "cash"
-    | "upi"
-    | "bank"
-    | "card";
-
-  status:
-    | "success"
-    | "pending"
-    | "failed";
-
+  method: PaymentMethod
+  status: PaymentStatus;
   transactionId?: string;
   notes?: string;
   paidAt: Date;
   createdBy: Types.ObjectId;
+  isArchived: boolean;
   metadata?: Record<string, unknown>;
 }
 
@@ -46,14 +40,14 @@ const paymentSchema = new Schema<IPayment>(
 
     method: {
       type: String,
-      enum: ["cash", "upi", "bank", "card"],
-      default: "cash",
+      enum: Object.values(PAYMENT_METHOD),
+      default: PAYMENT_METHOD.CASH,
     },
 
     status: {
       type: String,
-      enum: ["success", "pending", "failed"],
-      default: "success",
+      enum: Object.values(PAYMENT_STATUS),
+      default: PAYMENT_STATUS.SUCCESS,
     },
 
     transactionId: String,
@@ -75,10 +69,31 @@ const paymentSchema = new Schema<IPayment>(
       type: Schema.Types.Mixed,
       default: {},
     },
+    isArchived: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-export const Payment = model<IPayment>("Payment", paymentSchema);
+paymentSchema.index({
+  businessId: 1,
+  paidAt: -1,
+});
+
+paymentSchema.index({
+  businessId: 1,
+  invoiceId: 1,
+});
+
+paymentSchema.index({
+  businessId: 1,
+  status: 1,
+});
+
+paymentSchema.plugin(mongooseAggregatePaginate);
+
+export const Payment = model<IPayment, AggregatePaginateModel<IPayment>>("Payment", paymentSchema);
