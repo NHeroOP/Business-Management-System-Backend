@@ -5,44 +5,17 @@ import jwt, { type JwtPayload } from "jsonwebtoken";
 import { User } from "../user/User.model.js";
 import { generateTokens, hashData } from "./auth.util.js";
 import { PASSWORD_RESET_EMAIL_TEMPLATE_ID } from "./auth.const.js";
+import type { RegisterPayload, LoginInput, RefreshTokenInput, RegisterInput, ResetPasswordInput } from './auth.validation.js';
 
 import resend from "@/shared/config/resend.js";
 import { ApiError } from "@/shared/utils/ApiError.js";
 import { uploadOnCloudinary } from "@/shared/config/cloudinary.js";
 
 
-interface RegisterUserServiceInput {
-  body: {
-    username: string;
-    email: string;
-    name: string;
-    password: string;
-  };
-
-  avatarLocalPath?: string | undefined;
-}
-
-interface LoginUserServiceInput {
-  body: {
-    username: string;
-    email: string;
-    password: string;
-  };
-}
-
-interface RefreshAccessTokenServiceInput {
-  incomingRefreshToken: string;
-}
-
-interface ResetPasswordServiceInput {
-  token: string;
-  userId: string;
-  newPassword: string;
-}
-
-
-export const registerUserService = async ({ body, avatarLocalPath }: RegisterUserServiceInput) => {
-  const { username, email, name, password } = body;
+export const registerUserService = async (
+  payload: RegisterPayload
+) => {
+  const { avatarLocalPath, username, email, name, password } = payload;
   if (
     [name, email, username, password].some(
       (field) => field?.trim() === "",
@@ -94,9 +67,9 @@ export const registerUserService = async ({ body, avatarLocalPath }: RegisterUse
   return createdUser;
 };
 
-
-export const loginUserService = async ({ body }: LoginUserServiceInput) => { 
-  const { username, email, password } = body;
+export const loginUserService = async (
+  { username, email, password }: LoginInput
+) => { 
 
   if (!username && !email) {
     throw new ApiError(400, "Username or email is required");
@@ -106,9 +79,11 @@ export const loginUserService = async ({ body }: LoginUserServiceInput) => {
     throw new ApiError(400, "Password is required");
   }
 
-  const user = await User.findOne({
-    $or: [{ username }, { email }],
-  });
+  const user = await User.findOne(
+    username
+      ? { username }
+      : { email: email! },
+  );
 
   if (!user) {
     throw new ApiError(404, "User not found");
@@ -139,13 +114,7 @@ export const loginUserService = async ({ body }: LoginUserServiceInput) => {
   return { userData, accessToken, refreshToken };
 };
 
-
-export const logoutUserService = async (userId: Types.ObjectId | undefined) => {
-
-  if (!userId) {
-    throw new ApiError(400, "User ID is required");
-  }
-
+export const logoutUserService = async (userId: Types.ObjectId) => {
   const user = await User.findByIdAndUpdate(
     userId,
     {
@@ -163,7 +132,7 @@ export const logoutUserService = async (userId: Types.ObjectId | undefined) => {
 
 export const refreshAccessTokenService = async ({
   incomingRefreshToken,
-}: RefreshAccessTokenServiceInput) => {
+}: RefreshTokenInput) => {
   if (!incomingRefreshToken) {
     throw new ApiError(401, "Refresh token is missing");
   }
@@ -250,7 +219,7 @@ export const forgotPasswordService = async (email: string) => {
 };
 
 export const resetPasswordService = async (
-  { token, userId, newPassword }: ResetPasswordServiceInput
+  { token, userId, newPassword }: ResetPasswordInput
 ) => { 
   if (!token || !userId || !newPassword) {
     throw new ApiError(400, "Token, user ID and new password are required");
@@ -278,11 +247,7 @@ export const resetPasswordService = async (
   await user.save();
 };
 
-export const getCurrentUserService = async (userId: Types.ObjectId | undefined) => { 
-  if (!userId) {
-    throw new ApiError(400, "User ID is required");
-  }
-
+export const getCurrentUserService = async (userId: Types.ObjectId) => { 
   const user = await User.findById(userId).select("-password -refreshToken");
 
   if (!user) {

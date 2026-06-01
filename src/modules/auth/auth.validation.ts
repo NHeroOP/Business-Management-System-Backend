@@ -1,0 +1,43 @@
+import * as z from "zod";
+
+
+export const registerSchema = z.object({
+  username: z.string().min(4, "Username must be at least 4 characters"),
+  name: z.string().min(3, "Name must be at least 3 characters"),
+  email: z.email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters")
+});
+
+export type RegisterInput = z.infer<typeof registerSchema>;
+
+export type RegisterPayload = RegisterInput & {
+  avatarLocalPath?: string | undefined;
+}
+
+export const loginSchema = z.object({
+  username: z.string().min(4, "Username must be at least 4 characters").optional(),
+  email: z.email("Invalid email address").optional(),
+  password: z.string().min(6, "Password must be at least 6 characters")
+});
+
+export type LoginInput = z.infer<typeof loginSchema>;
+
+export const refreshTokenSchema = z.object({
+  incomingRefreshToken: z.jwt("Invalid refresh token"),
+});
+
+export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
+
+export const forgotPasswordSchema = z.object({
+  email: z.email("Invalid email address"),
+});
+
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z.object({
+  userId: z.string().length(24, "User ID is required"),
+  token: z.string().length(64, "Reset token is required"),
+  newPassword: z.string().min(6, "New password must be at least 6 characters"),
+});
+
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

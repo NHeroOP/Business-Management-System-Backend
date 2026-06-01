@@ -1,9 +1,7 @@
 import type { Request, Response } from "express";
 
-import { asyncHandler } from "@/shared/utils/asyncHandler.js";
-import { ApiError } from "@/shared/utils/ApiError.js";
-import { ApiResponse } from "@/shared/utils/ApiResponse.js";
-
+import { generateTokens } from "./auth.util.js";
+import { cookieOptions } from "./auth.const.js";
 import {
   forgotPasswordService,
   getCurrentUserService,
@@ -13,8 +11,11 @@ import {
   registerUserService,
   resetPasswordService
 } from "./auth.service.js";
-import { generateTokens } from "./auth.util.js";
-import { cookieOptions } from "./auth.const.js";
+import { forgotPasswordSchema, loginSchema, refreshTokenSchema, registerSchema, resetPasswordSchema } from "./auth.validation.js";
+
+import { asyncHandler } from "@/shared/utils/asyncHandler.js";
+import { ApiError } from "@/shared/utils/ApiError.js";
+import { ApiResponse } from "@/shared/utils/ApiResponse.js";
 
 
 export const registerUser = asyncHandler(async (req: Request, res: Response) => {
@@ -22,10 +23,11 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
   if (!avatarLocalPath) {
     throw new ApiError(400, "Failed to upload avatar image");
   }
-  
+
+  const body = registerSchema.parse(req.body);
   const createdUser = await registerUserService({
-    body: req.body,
-    avatarLocalPath
+    avatarLocalPath,
+    ...body,
   })
 
   return res
@@ -34,7 +36,12 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
-  const { userData, accessToken, refreshToken } = await loginUserService({ body: req.body });
+  const { username, email, password } = loginSchema.parse(req.body)
+  const { userData, accessToken, refreshToken } = await loginUserService({
+    username,
+    email,
+    password,
+  });
 
   return res
     .status(200)
@@ -54,7 +61,7 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const logoutUser = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user?._id;
+  const userId = req.user!._id;
 
   await logoutUserService(userId);
 
@@ -66,8 +73,9 @@ export const logoutUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
-  const incomingRefreshToken =
-    req.cookies.refreshToken || req.body.refreshToken;
+  const { incomingRefreshToken } = refreshTokenSchema.parse(
+    req.cookies.refreshToken || req.body.refreshToken
+  );
 
   const { accessToken, refreshToken } = await refreshAccessTokenService({
     incomingRefreshToken,
@@ -90,35 +98,31 @@ export const refreshAccessToken = asyncHandler(async (req: Request, res: Respons
 });
 
 export const forgotPassword = asyncHandler(async (req: Request, res: Response) => { 
-  await forgotPasswordService(req.body.email);
+  const { email } = forgotPasswordSchema.parse(req.body);
+  await forgotPasswordService(email);
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, {}, "Password reset email sent successfully"));
+  return res.status(200).json(
+    new ApiResponse(200, {}, "Password reset email sent successfully")
+  );
 });
 
 export const resetPassword = asyncHandler(async (req: Request, res: Response) => { 
-  const { token, userId, newPassword } = req.body;
+  const { token, userId, newPassword } = resetPasswordSchema.parse(req.body);
 
   await resetPasswordService({ token, userId, newPassword });
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, {}, "Password reset successfully"));
+  return res.status(200).json(
+    new ApiResponse(200, {}, "Password reset successfully")
+  );
 });
 
 export const getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user?._id;
-
-  if (!userId) {
-    throw new ApiError(401, "Unauthorized");
-  }
-
+  const userId = req.user!._id;
   const user = await getCurrentUserService(userId);
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, user, "Current user fetched successfully"));
+  return res.status(200).json(
+    new ApiResponse(200, user, "Current user fetched successfully")
+  );
 });
 
 
