@@ -20,19 +20,13 @@ import {
 } from "./auth.validation.js";
 
 import { asyncHandler } from "@/shared/utils/asyncHandler.js";
-import { ApiError } from "@/shared/utils/ApiError.js";
 import { ApiResponse } from "@/shared/utils/ApiResponse.js";
 
 
 export const registerUser = asyncHandler(async (req: Request, res: Response) => {
-  const avatarLocalPath = req.file?.path;
-  if (!avatarLocalPath) {
-    throw new ApiError(400, "Failed to upload avatar image");
-  }
-
   const body = registerSchema.parse(req.body);
   const createdUser = await registerUserService({
-    avatarLocalPath,
+    ...(req.file && { avatarLocalPath: req.file.path }),
     ...body,
   })
 

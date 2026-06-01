@@ -11,7 +11,7 @@ export const registerSchema = z.object({
 export type RegisterInput = z.infer<typeof registerSchema>;
 
 export type RegisterPayload = RegisterInput & {
-  avatarLocalPath?: string | undefined;
+  avatarLocalPath?: string;
 }
 
 export const loginSchema = z.object({
