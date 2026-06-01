@@ -5,7 +5,7 @@ import jwt, { type JwtPayload } from "jsonwebtoken";
 import { User } from "../user/User.model.js";
 import { generateTokens, hashData } from "./auth.util.js";
 import { PASSWORD_RESET_EMAIL_TEMPLATE_ID } from "./auth.const.js";
-import type { RegisterPayload, LoginInput, RefreshTokenInput, RegisterInput, ResetPasswordInput } from './auth.validation.js';
+import type { RegisterPayload, LoginInput, RefreshTokenInput, ResetPasswordInput } from './auth.validation.js';
 
 import resend from "@/shared/config/resend.js";
 import { ApiError } from "@/shared/utils/ApiError.js";

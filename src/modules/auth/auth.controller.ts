@@ -9,9 +9,15 @@ import {
   logoutUserService,
   refreshAccessTokenService,
   registerUserService,
-  resetPasswordService
+  resetPasswordService,
 } from "./auth.service.js";
-import { forgotPasswordSchema, loginSchema, refreshTokenSchema, registerSchema, resetPasswordSchema } from "./auth.validation.js";
+import {
+  forgotPasswordSchema,
+  loginSchema,
+  refreshTokenSchema,
+  registerSchema,
+  resetPasswordSchema,
+} from "./auth.validation.js";
 
 import { asyncHandler } from "@/shared/utils/asyncHandler.js";
 import { ApiError } from "@/shared/utils/ApiError.js";
