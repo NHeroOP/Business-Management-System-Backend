@@ -15,7 +15,7 @@ import type { Types } from "mongoose";
 
 export const createClient = asyncHandler(async (req: Request, res: Response) => { 
   const payload = {
-    businessId: req.workspace!._id,
+    businessId: req.workspace!.businessId,
     createdBy: req.user!._id,
     ...req.body,
   }
@@ -30,7 +30,7 @@ export const getClients = asyncHandler(async (req: Request, res: Response) => {
   const { page = 1, limit = 10, search, sortBy } = req.query;
 
   const clients = await findClients({
-    businessId: req.workspace!._id,
+    businessId: req.workspace!.businessId,
     page: parseInt(page as string) || 1,
     limit: parseInt(limit as string) || 10,
     search: search as string,
