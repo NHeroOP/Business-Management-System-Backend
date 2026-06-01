@@ -248,6 +248,7 @@ export const findInvoices = async (payload: FindInvoicesPayload) => {
     {
       $match: {
         businessId: new Types.ObjectId(businessId),
+        isArchived: false,
       },
     },
     {

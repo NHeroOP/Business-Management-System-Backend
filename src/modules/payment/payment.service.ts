@@ -120,6 +120,7 @@ export const findPayments = async (
     {
       $match: {
         businessId: businessId,
+        isArchived: false,
         ...(invoiceId && { invoiceId: new Types.ObjectId(invoiceId) }),
         ...(status && { status: status }),
         ...(method && { method: method }),
