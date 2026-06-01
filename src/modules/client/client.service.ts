@@ -1,23 +1,26 @@
-import { ApiError } from "@/shared/utils/ApiError.js";
-import { Client, type IClient, type IClientDocument } from "./Client.model.js";
 import { Types, type AggregatePaginateResult } from "mongoose";
 
+import { Client, type IClientDocument } from "./Client.model.js";
+import type { ClientIdInput, CreateClientInput, FindClientsInput, UpdateClientInput } from "./client.validation.js";
 
-interface FindClientPayload {
-  businessId: Types.ObjectId | string;
-  page?: number;
-  limit?: number;
-  search?: string;
-  sortBy?: string;
+import { ApiError } from "@/shared/utils/ApiError.js";
+
+
+type CreateClientPayload = CreateClientInput & {
+  businessId: Types.ObjectId;
+  createdBy: Types.ObjectId;
 }
 
-interface UpdateClientPayload {
-  clientId: Types.ObjectId | string;
-  updateData: Partial<Omit<IClient, "businessId" | "createdBy" | "isArchived" | "metadata">>;
+type FindClientsPayload = FindClientsInput & {
+  businessId: Types.ObjectId;
+}
+
+type UpdateClientPayload = ClientIdInput & UpdateClientInput & {
+  businessId: Types.ObjectId;
 }
 
 export const createClient = async (
-  payload: Omit<IClient, "metadata" | "isArchived">
+  payload: CreateClientPayload
 ): Promise<IClientDocument> => {
   const { businessId, name, email, phone, address, companyName, gstNumber, notes, tags, createdBy } = payload;
 
@@ -46,9 +49,9 @@ export const createClient = async (
 }
 
 export const findClients = async (
-  payload: FindClientPayload
+  payload: FindClientsPayload
 ): Promise<AggregatePaginateResult<IClientDocument>> => {
-  const { businessId, page = 1, limit = 10, search, sortBy } = payload;
+  const { businessId, page, limit, search, sortBy } = payload;
   
   const clientAggregate = Client.aggregate([
     {
@@ -75,7 +78,7 @@ export const findClients = async (
 }
 
 export const findClientById = async (
-  clientId: Types.ObjectId | string
+  clientId: ClientIdInput["clientId"]
 ): Promise<IClientDocument> => {
   const client = await Client.findById(clientId).select("-metadata");
 
@@ -90,24 +93,26 @@ export const updateClient = async (
   payload: UpdateClientPayload
 ) => { 
 
-  const { clientId, updateData } = payload;
+  const { businessId, clientId, ...updateData } = payload;
 
-  const client = await Client.findOne({
-    _id: clientId,
-    isArchived: false,
-  });
+  const client = await Client.findOneAndUpdate(
+    {
+      _id: clientId,
+      businessId,
+      isArchived: false,
+    },
+    { ...updateData },
+    {"returnDocument": "after"}
+  );
 
   if (!client) {
     throw new ApiError(404, "Client not found");
   }
 
-  Object.assign(client, updateData);
-  await client.save();
-
 };
 
 export const archiveClient = async (
-  clientId: Types.ObjectId | string
+  clientId: ClientIdInput["clientId"]
 ): Promise<void> => { 
   if (!clientId) {
     throw new ApiError(400, "Client ID is required");
