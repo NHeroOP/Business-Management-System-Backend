@@ -1,5 +1,5 @@
-import type { IBusinessMemberDocument } from "@/modules/businessMember/BusinessMember.model.ts";
-import type { IUserDocument } from "@/modules/user/User.model.ts";
+import type { IBusinessMemberDocument } from "@/modules/businessMember/BusinessMember.model.js";
+import type { IUserDocument } from "@/modules/user/User.model.js";
 
 declare module "express-serve-static-core" {
   interface Request {
