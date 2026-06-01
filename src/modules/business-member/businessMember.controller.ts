@@ -10,15 +10,18 @@ import {
 import { asyncHandler } from "@/shared/utils/asyncHandler.js";
 import { ApiResponse } from "@/shared/utils/ApiResponse.js";
 import type { Types } from "mongoose";
+import { inviteMemberSchema, updateMemberSchema } from "./businessMember.validation.js";
 
 
 export const inviteMember = asyncHandler(async (req: Request, res: Response) => {
+  const { role } = inviteMemberSchema.parse(req.body);
+
   await addBusinessMember({
-    role: req.body.role,
+    role,
+    // permissions: body.permissions,
     currUserRole: req.workspace!.role,
-    // permissions: req.body.permissions,
     businessId: req.workspace!.businessId,
-    memberId: req.params.memberId as Types.ObjectId | string,
+    userId: req.params.userId as Types.ObjectId | string,
   });
 
   return res.status(200).json(
@@ -33,12 +36,13 @@ export const getMembers = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
-export const updateMemberRole = asyncHandler(async (req: Request, res: Response) => { 
+export const updateMemberRole = asyncHandler(async (req: Request, res: Response) => {
+  const { role } = updateMemberSchema.parse(req.body);
   await changeMemberRole({
-    role: req.body.role,
+    role,
     currUserRole: req.workspace!.role,
     businessId: req.workspace!.businessId,
-    memberId: req.params.memberId as Types.ObjectId | string,
+    userId: req.params.userId as Types.ObjectId | string,
   });
 
   return res.status(200).json(
@@ -50,7 +54,7 @@ export const removeMember = asyncHandler(async (req: Request, res: Response) => 
   await removeBusinessMember({
     currUserRole: req.workspace!.role,
     businessId: req.workspace!.businessId,
-    memberId: req.params.memberId as string | Types.ObjectId,
+    userId: req.params.userId as string | Types.ObjectId,
   });
   
   return res.status(200).json(

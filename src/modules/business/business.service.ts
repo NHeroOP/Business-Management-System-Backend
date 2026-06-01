@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import slugify from "slugify";
 import type { Types } from "mongoose";
 
 import {
@@ -6,42 +7,38 @@ import {
   type IBusiness,
   type IBusinessDocument,
 } from "./Business.model.js";
-import { generateSlug } from "./business.util.js";
+import type {
+  CreateBusinessInput,
+  UpdateBusinessDetailsInput,
+  UpdateBusinessLogoInput
+} from "./business.validation.js";
 
 import { ApiError } from "@/shared/utils/ApiError.js";
 import { uploadOnCloudinary } from "@/shared/config/cloudinary.js";
 import { BusinessMember } from "../business-member/BusinessMember.model.js";
 import { BUSINESS_ROLE } from "@/consts.js";
 
-type BusinessPayload = Pick<
-  IBusiness,
-  "name" | "email" | "phone" | "address" | "website" | "description"
->;
-interface CreateBusinessPayload {
-  payload: Pick<BusinessPayload, "name"> &
-    Partial<Omit<BusinessPayload, "name">>;
-  createdBy: Types.ObjectId | string | undefined;
-  logoUrl?: string | undefined;
-}
 
-interface CreateBusinessMemberPayload {
-  businessId: Types.ObjectId | string;
-  memberId: Types.ObjectId | string | undefined;
-}
+type CreateBusinessPayload =
+  CreateBusinessInput & {
+    logoUrl?: string;
+    createdBy: Types.ObjectId;
+  };
 
-interface UpdateBusinessDetailsPayload extends Partial<BusinessPayload> {
-  businessId: Types.ObjectId | string;
-}
+type UpdateBusinessDetailsPayload =
+  UpdateBusinessDetailsInput & {
+    businessId: Types.ObjectId | string;
+  };
 
-interface UpdateBusinessLogoPayload {
-  businessId: Types.ObjectId | string;
-  logoUrl: string | undefined;
-}
+type UpdateBusinessLogoPayload =
+  UpdateBusinessLogoInput & {
+    businessId: Types.ObjectId | string;
+  };
 
 export const createBusiness = async ({
   createdBy,
   logoUrl,
-  payload,
+  ...payload
 }: CreateBusinessPayload): Promise<IBusinessDocument> => {
   if (!createdBy) {
     throw new ApiError(401, "Unauthorized");
@@ -53,10 +50,18 @@ export const createBusiness = async ({
     throw new ApiError(400, "Business name is required");
   }
 
-  const slug = generateSlug(name, crypto.randomBytes(2).toString("hex"));
+  const baseSlug = slugify(name, {
+    lower: true,
+    strict: true,
+    trim: true,
+  });
+  const suffix = crypto.randomBytes(2).toString("hex");
+  
+
+  const slug = `${baseSlug}-${suffix}`;
 
   const uploadedLogo = logoUrl ? await uploadOnCloudinary(logoUrl) : undefined;
-  const logo = {
+  const logo = uploadedLogo && {
     url: uploadedLogo?.secure_url,
     publicId: uploadedLogo?.public_id,
   };
@@ -77,27 +82,19 @@ export const createBusiness = async ({
     throw new ApiError(500, "Failed to create business");
   }
 
-  return newBusiness;
-};
-
-export const createBusinessMember = async ({
-  businessId,
-  memberId,
-}: CreateBusinessMemberPayload): Promise<void> => {
-  if (!businessId || !memberId) {
-    throw new ApiError(500, "Business ID and User ID are required");
-  }
-
   const member = await BusinessMember.create({
-    businessId,
-    memberId: memberId,
+    businessId: newBusiness._id,
+    userId: createdBy,
     role: BUSINESS_ROLE.OWNER,
   });
 
   if (!member) {
     throw new ApiError(500, "Failed to create business member");
   }
+
+  return newBusiness;
 };
+
 
 export const findBusinessById = async (
   businessId: Types.ObjectId | string,

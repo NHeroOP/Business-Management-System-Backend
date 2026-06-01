@@ -1,7 +1,6 @@
 import type { Request, Response } from "express";
 
 import {
-  createBusinessMember,
   createBusiness as createBusinessService,
   findBusinessById,
   updateBusinessDetails,
@@ -10,15 +9,15 @@ import {
 
 import { asyncHandler } from "@/shared/utils/asyncHandler.js";
 import { ApiResponse } from "@/shared/utils/ApiResponse.js";
+import { createBusinessSchema } from "./business.validation.js";
 
 export const createBusiness = asyncHandler(async (req: Request, res: Response) => { 
+  const data = createBusinessSchema.parse(req.body)
   const business = await createBusinessService({
-    payload: req.body,
-    createdBy: req.user?._id,
-    logoUrl: req.file?.path
+    createdBy: req.user!._id,
+    ...(req.file?.path && { logoUrl: req.file.path }),
+    ...data
   });
-
-  await createBusinessMember({businessId: business._id, memberId: req.user?._id});
 
   return res.status(201).json(
     new ApiResponse(201, business, "Business created successfully")

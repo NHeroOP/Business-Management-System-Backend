@@ -31,14 +31,14 @@ router
   .post(requireRole([BUSINESS_ROLE.OWNER, BUSINESS_ROLE.ADMIN]), inviteMember);
 
 router
-  .route("/:memberId")
+  .route("/:userId")
   .delete(
     requireRole([BUSINESS_ROLE.OWNER, BUSINESS_ROLE.ADMIN]),
     removeMember,
   );
 
 router
-  .route("/:memberId/role")
+  .route("/:userId/role")
   .patch(
     requireRole([BUSINESS_ROLE.OWNER, BUSINESS_ROLE.ADMIN]),
     updateMemberRole,

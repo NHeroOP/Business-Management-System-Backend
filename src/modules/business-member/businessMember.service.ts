@@ -4,38 +4,34 @@ import { BusinessMember, type IBusinessMemberDocument } from "./BusinessMember.m
 
 import type { BusinessRole } from "@/consts.js";
 import { ApiError } from "@/shared/utils/ApiError.js";
+import type { UpdateMemberInput } from "./businessMember.validation.js";
 
-interface ReqParams {
+interface WorkspaceContext {
   currUserRole: string;
   businessId: Types.ObjectId | string;
-  memberId: Types.ObjectId | string | undefined;
+  userId: Types.ObjectId | string | undefined;
 }
 
 interface AddMemberParams
-  extends ReqParams {
+  extends WorkspaceContext {
   role: BusinessRole;
   // permissions?: string[];
 }
 
 interface ChangeMemberRoleParams
-  extends ReqParams {
-  role: BusinessRole;
+  extends WorkspaceContext {
+  role: UpdateMemberInput;
 }
 
 export const addBusinessMember = async (
   payload: AddMemberParams
 ): Promise<IBusinessMemberDocument> => {
-  const { currUserRole, businessId, memberId, role } = payload;
+  const { currUserRole, businessId, userId, role } = payload;
 
-  if (!memberId || !role) {
+  if (!userId || !role) {
     throw new ApiError(400, "User ID and Role are required");
   }
 
-  // const authUserMembership = await BusinessMember.findOne({ businessId, memberId: authUserId, isArchived: false });
-
-  // if (!authUserMembership) {
-  //   throw new ApiError(403, "You are not a member of this business");
-  // }
 
   if (currUserRole === "ADMIN" && role === "OWNER") {
     throw new ApiError(403, "Admins cannot invite owners to the business");
@@ -43,7 +39,7 @@ export const addBusinessMember = async (
 
   const existingMember = await BusinessMember.findOne({
     businessId,
-    memberId,
+    userId,
   });
 
   if (existingMember) {
@@ -59,7 +55,7 @@ export const addBusinessMember = async (
 
   const newMember = await BusinessMember.create({
     businessId,
-    memberId,
+    userId,
     role,
     // permissions,
   })
@@ -74,7 +70,7 @@ export const addBusinessMember = async (
 export const findBusinessMembers = async (
   businessId: Types.ObjectId | string
 ): Promise<IBusinessMemberDocument[]> => {
-  const members = await BusinessMember.find({ businessId, isArchived: false }).populate("memberId", "name email");
+  const members = await BusinessMember.find({ businessId, isArchived: false }).populate("userId", "name email");
 
   if (!members || members.length === 0) {
     throw new ApiError(404, "No members found for this business");
@@ -84,25 +80,19 @@ export const findBusinessMembers = async (
 };
 
 export const changeMemberRole = async (
-  payload: ChangeMemberRoleParams
+  payload: WorkspaceContext & UpdateMemberInput
 ): Promise<void> => {
-  const { currUserRole, businessId, memberId, role } = payload;
-
-  // const authUserMembership = await BusinessMember.findOne({ businessId, memberId: authUserId, isArchived: false });
-
-  // if (!authUserMembership) {
-  //   throw new ApiError(403, "You are not a member of this business");
-  // }
+  const { currUserRole, businessId, userId, role } = payload;
 
   if (currUserRole === "ADMIN" && role === "OWNER") {
     throw new ApiError(403, "Admins cannot assign owner role to members");
   }
 
-  if (!businessId || !memberId || !role) {
+  if (!businessId || !userId || !role) {
     throw new ApiError(400, "Business ID, User ID and Role are required");
   }
 
-  const member = await BusinessMember.findOne({ businessId, memberId, isArchived: false });
+  const member = await BusinessMember.findOne({ businessId, userId, isArchived: false });
 
   if (!member) {
     throw new ApiError(404, "Member not found in this business");
@@ -113,18 +103,13 @@ export const changeMemberRole = async (
 };
 
 export const removeBusinessMember = async (
-  { currUserRole, businessId, memberId }: ReqParams
+  { currUserRole, businessId, userId }: WorkspaceContext
 ): Promise<void> => {
-  if (!businessId || !memberId) {
+  if (!businessId || !userId) {
     throw new ApiError(400, "Business ID and User ID are required");
   }
 
-  // const authUserMembership = await BusinessMember.findOne({ businessId, memberId: authUserId, isArchived: false });
-
-  // if (!authUserMembership) {
-  //   throw new ApiError(403, "You are not a member of this business");
-  // }
-  const targetMembership = await BusinessMember.findOne({ businessId, memberId });
+  const targetMembership = await BusinessMember.findOne({ businessId, userId });
   if (!targetMembership) {
     throw new ApiError(404, "Target member not found in this business");
   }

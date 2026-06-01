@@ -4,7 +4,7 @@ import { Schema, model, Types, type HydratedDocument } from "mongoose";
 
 export interface IBusinessMember {
   businessId: Types.ObjectId;
-  memberId: Types.ObjectId;
+  userId: Types.ObjectId;
   role: BusinessRole;
   permissions: string[];
   isArchived: boolean;
@@ -21,7 +21,7 @@ const businessMemberSchema = new Schema<IBusinessMember>(
       index: true,
     },
 
-    memberId: {
+    userId: {
       type: Types.ObjectId,
       ref: "User",
       required: true,
