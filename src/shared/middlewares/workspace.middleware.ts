@@ -20,7 +20,7 @@ export const resolveWorkspace = asyncHandler(
     const member = await BusinessMember
       .findOne({
         businessId,
-        userId: req.user._id,
+        memberId: req.user._id,
         isArchived: false,
       })
       .select("-permissions -isArchived -createdAt -updatedAt -__v");
