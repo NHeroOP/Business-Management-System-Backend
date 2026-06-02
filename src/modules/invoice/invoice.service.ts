@@ -449,7 +449,7 @@ export const changeInvoiceStatus = async ({
     throw new ApiError(404, "Invoice not found");
   }
 
-  if ((invoice.status = "CANCELLED")) {
+  if ((invoice.status === "CANCELLED")) {
     throw new ApiError(400, "Cannot change status of a cancelled invoice");
   }
 

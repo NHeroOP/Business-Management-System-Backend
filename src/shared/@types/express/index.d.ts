@@ -1,4 +1,4 @@
-import type { IBusinessMemberDocument } from "@/modules/businessMember/BusinessMember.model.js";
+import type { IBusinessMemberDocument } from "@/modules/business-member/BusinessMember.model.js";
 import type { IUserDocument } from "@/modules/user/User.model.js";
 
 type WorkspaceContext = {

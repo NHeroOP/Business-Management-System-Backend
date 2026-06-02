@@ -14,7 +14,7 @@ export const createPaymentSchema = z.object({
 export type CreatePaymentInput = z.infer<typeof createPaymentSchema>;
 
 export const getPaymentsSchema = z.object({
-  invoiceId: z.string().length(24, "Invalid invoice ID"),
+  invoiceId: z.string().length(24, "Invalid invoice ID").optional(),
   status: z.enum(Object.values(PAYMENT_STATUS)).optional(),
   method: z.enum(Object.values(PAYMENT_METHOD)).optional(),
   fromDate: z.date().optional(),
