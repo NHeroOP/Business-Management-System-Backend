@@ -13,6 +13,7 @@ import { ApiError } from "@/shared/utils/ApiError.js";
 import { allowedSortFields } from "./invoice.const.js";
 import { type InvoiceStatus } from "@/consts.js";
 import resend from "@/shared/config/resend.js";
+import type { CreateInvoiceInput, FindInvoicesInput, InvoiceIdParam, UpdateInvoiceInput } from "./invoice.validation.js";
 
 
 interface InvoiceItemInput {
@@ -20,32 +21,17 @@ interface InvoiceItemInput {
   quantity: number;
 }
 
-interface createInvoicePayload {
-  userId: Types.ObjectId | string;
-  businessId: Types.ObjectId | string;
-  clientId: Types.ObjectId | string;
-  items: InvoiceItemInput[];
-  tax?: number;
-  discount?: number;
-  dueDate?: Date;
-  notes?: string;
+type createInvoicePayload = CreateInvoiceInput & {
+  userId: Types.ObjectId;
+  businessId: Types.ObjectId;
 }
 
-interface FindInvoicesPayload {
-  businessId: Types.ObjectId | string;
-  email?: string;
-  name?: string;
-  options: {
-    page?: number;
-    limit?: number;
-    sortBy?: string;
-    sortOrder?: 1 | -1;
-  };
+type FindInvoicesPayload = FindInvoicesInput &{
+  businessId: Types.ObjectId;
 }
 
-interface IdPayload {
-  invoiceId: Types.ObjectId | string;
-  businessId: Types.ObjectId | string;
+type InvoiceContext = InvoiceIdParam & {
+  businessId: Types.ObjectId;
 }
 
 type PopulatedClient = {
@@ -54,18 +40,7 @@ type PopulatedClient = {
   phone: string | undefined;
 };
 
-interface UpdateInvoicePayload {
-  invoiceId: Types.ObjectId | string;
-  businessId: Types.ObjectId | string;
-  items?: {
-    productId: Types.ObjectId | string;
-    quantity: number;
-  }[];
-  tax?: number;
-  discount?: number;
-  dueDate?: Date;
-  notes?: string;
-}
+type UpdateInvoicePayload = UpdateInvoiceInput & InvoiceContext;
 
 export const createInvoice = async (
   payload: createInvoicePayload
@@ -237,7 +212,7 @@ export const createInvoice = async (
 };
 
 export const findInvoices = async (payload: FindInvoicesPayload) => {
-  const { businessId, email, name, options } = payload;
+  const { businessId, email, name, ...options } = payload;
 
   const sortBy = allowedSortFields.includes(options.sortBy ?? "")
     ? options.sortBy!
@@ -302,7 +277,7 @@ export const findInvoices = async (payload: FindInvoicesPayload) => {
   return invoices;
 };
 
-export const findInvoiceById = async ({ businessId, invoiceId }: IdPayload) => {
+export const findInvoiceById = async ({ businessId, invoiceId }: InvoiceContext) => {
   if (!invoiceId) {
     throw new ApiError(400, "invoiceId is required");
   }
@@ -425,7 +400,7 @@ export const updateInvoice = async (payload: UpdateInvoicePayload) => {
   return invoice;
 };
 
-export const archiveInvoice = async ({ invoiceId, businessId }: IdPayload) => {
+export const archiveInvoice = async ({ invoiceId, businessId }: InvoiceContext) => {
   if (!invoiceId) {
     throw new ApiError(400, "invoiceId is required");
   }
@@ -451,7 +426,7 @@ export const changeInvoiceStatus = async ({
   invoiceId,
   businessId,
   status,
-}: IdPayload & { status: InvoiceStatus }) => {
+}: InvoiceContext & { status: InvoiceStatus }) => {
   if (!invoiceId) {
     throw new ApiError(400, "invoiceId is required");
   }
@@ -501,7 +476,7 @@ export const changeInvoiceStatus = async ({
 export const generateInvoicePdf = async ({
   invoiceId,
   businessId,
-}: IdPayload)  => {
+}: InvoiceContext)  => {
   if (!invoiceId) {
     throw new ApiError(400, "invoiceId is required");
   }

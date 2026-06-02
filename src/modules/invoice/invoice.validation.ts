@@ -1,0 +1,62 @@
+import * as z from "zod";
+import { allowedSortFields } from "./invoice.const.js";
+import { INVOICE_STATUS } from "@/consts.js";
+
+export const createInvoiceSchema = z.object({
+  clientId: z.string().length(24, "Invalid client ID format"),
+  items: z.array(
+    z.object({
+      productId: z.string().length(24, "Invalid product ID format"),
+      quantity: z.number().positive(),
+    }),
+  ),
+  tax: z.number().nonnegative().optional(),
+  discount: z.number().nonnegative().optional(),
+  notes: z.string().optional(),
+  dueDate: z
+    .string()
+    .refine((date) => !isNaN(Date.parse(date)), {
+      message: "Invalid date format",
+    })
+    .optional(),
+});
+
+export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>;
+
+export const getInvoicesSchema = z.object({
+  email: z.email().optional(),
+  name: z.string().optional(),
+  sortBy: z.enum(allowedSortFields).optional(),
+  sortOrder: z.union([z.literal(1), z.literal(-1)]).optional(),
+  page: z.number().positive().optional(),
+  limit: z.number().positive().optional(),
+});
+
+export type FindInvoicesInput = z.infer<typeof getInvoicesSchema>;
+
+export const invoiceIdParamSchema = z.object({
+  invoiceId: z.string().length(24, "Invalid invoice ID format"),
+});
+
+export type InvoiceIdParam = z.infer<typeof invoiceIdParamSchema>;
+
+export const updateInvoiceSchema = z.object({
+  items: z.array(
+    z.object({
+      productId: z.string().length(24, "Invalid product ID format"),
+      quantity: z.number().positive(),
+    }),
+  ).optional(),
+  tax: z.number().nonnegative().optional(),
+  discount: z.number().nonnegative().optional(),
+  notes: z.string().optional(),
+  dueDate:z.date().optional(),
+});
+
+export type UpdateInvoiceInput = z.infer<typeof updateInvoiceSchema>;
+
+export const updateInvoiceStatusSchema = z.object({
+  status: z.enum(Object.values(INVOICE_STATUS)),
+});
+
+export type UpdateInvoiceStatusInput = z.infer<typeof updateInvoiceStatusSchema>;
