@@ -8,7 +8,7 @@ export const createClientSchema = z.object({
   companyName: z.string().optional(),
   gstNumber: z.string().optional(),
   notes: z.string().optional(),
-  tags: z.array(z.string()).min(1, "At least one tag is required")
+  tags: z.array(z.string()).optional(),
 });
 
 export type CreateClientInput = z.infer<typeof createClientSchema>;
