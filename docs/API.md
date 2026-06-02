@@ -2,47 +2,55 @@
 
 All endpoints are prefixed with `/api/v1`.
 
-**Response envelope** (all endpoints):
+## Response Envelope
+
+**Success**
 ```json
 { "statusCode": 200, "data": {}, "message": "Success", "success": true }
 ```
 
-**Business-scoped requests** require:
+**Validation error** (ZodError → 400)
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [{ "field": "email", "message": "Invalid email address" }]
+}
 ```
+
+**Application error**
+```json
+{ "success": false, "message": "Invoice not found" }
+```
+
+## Authentication Headers
+
+Business-scoped routes require both headers:
+
+```
+Authorization: Bearer <accessToken>
 x-business-id: <businessId>
-Authorization: Bearer <accessToken>   (or cookie)
 ```
+
+JWT can also be sent via `accessToken` cookie.
 
 ---
 
-## Authentication — `/api/v1/auth`
+## Auth — `/api/v1/auth`
+
+Rate-limited.
 
 | Method | Path | Auth | Notes |
 |--------|------|------|-------|
-| POST | `/register` | — | `multipart/form-data`; field `avatarUrl` required |
-| POST | `/login` | — | Sets `accessToken` + `refreshToken` HTTP-only cookies |
+| POST | `/register` | — | `multipart/form-data`; fields: `name`, `email`, `username`, `password`, `avatarUrl` |
+| POST | `/login` | — | `{ email?, username?, password }` · Sets httpOnly cookies |
 | POST | `/logout` | JWT | Clears cookies; unsets `refreshToken` in DB |
+| POST | `/refresh-token` | — | `{ incomingRefreshToken }` or cookie · Issues new token pair |
 | GET | `/me` | JWT | Returns current user |
-| POST | `/forgot-password` | — | Sends reset email via Resend |
-| POST | `/reset-password` | — | Body: `{ token, userId, newPassword }` |
+| POST | `/forgot-password` | — | `{ email }` · Sends SHA-256 reset token via Resend |
+| POST | `/reset-password` | — | `{ token, userId, newPassword }` |
 | GET | `/google` | — | Redirects to Google OAuth |
 | GET | `/google/callback` | — | OAuth callback; sets JWT cookies |
-
-### Login Example
-```http
-POST /api/v1/auth/login
-Content-Type: application/json
-
-{ "email": "user@example.com", "password": "secret" }
-```
-```json
-{
-  "statusCode": 200,
-  "data": { "_id": "...", "name": "Jane", "email": "user@example.com" },
-  "message": "Login successful",
-  "success": true
-}
-```
 
 ---
 
@@ -52,23 +60,23 @@ All routes require `verifyJWT`.
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET | `/me` | Get own profile |
-| PATCH | `/me` | Update name |
-| PATCH | `/change-password` | Body: `{ currentPassword, newPassword }` |
+| GET | `/me` | Current user profile |
+| PATCH | `/me` | `{ name? }` |
+| PATCH | `/change-password` | `{ currentPassword, newPassword }` |
 | PATCH | `/update-avatar` | `multipart/form-data`; field `avatarUrl` |
-| GET | `/:id` | Get user by ID |
+| GET | `/:userId` | User by ID |
 
 ---
 
 ## Businesses — `/api/v1/businesses`
 
-All routes require `verifyJWT`. No `resolveWorkspace` — uses `:businessId` path param.
+All routes require `verifyJWT`. No workspace resolution — uses `:businessId` path param.
 
 | Method | Path | Role | Notes |
 |--------|------|------|-------|
-| POST | `/` | JWT | `multipart/form-data`; field `logoUrl`; auto-creates OWNER membership |
+| POST | `/` | JWT | `multipart/form-data`; field `logoUrl`; auto-creates `OWNER` membership |
 | GET | `/:businessId` | JWT | — |
-| PATCH | `/:businessId` | OWNER | Update details |
+| PATCH | `/:businessId` | OWNER | Update name / settings |
 | PATCH | `/:businessId/logo` | OWNER | `multipart/form-data`; field `logoUrl` |
 
 ---
@@ -80,36 +88,50 @@ All routes require `verifyJWT + resolveWorkspace`.
 | Method | Path | Role | Notes |
 |--------|------|------|-------|
 | GET | `/` | ALL | List members |
-| POST | `/` | OWNER, ADMIN | Invite member; re-activates if archived |
+| POST | `/` | OWNER, ADMIN | `{ userId, role? }` · Re-activates archived member if exists |
 | DELETE | `/:memberId` | OWNER, ADMIN | Soft delete |
-| PATCH | `/:memberId/role` | OWNER, ADMIN | Change role |
+| PATCH | `/:memberId/role` | OWNER, ADMIN | `{ role }` |
 
 ---
 
 ## Clients — `/api/v1/clients`
 
-All routes require `verifyJWT + resolveWorkspace + requireRole(ALL)`.
+All routes require `verifyJWT + resolveWorkspace`.
 
 | Method | Path | Query | Notes |
 |--------|------|-------|-------|
-| GET | `/` | `page, limit, search` | Paginated; text search on `name` |
-| POST | `/` | — | — |
+| GET | `/` | `page, limit, search, sortBy` | Paginated |
+| POST | `/` | — | Body below |
 | GET | `/:clientId` | — | — |
-| PATCH | `/:clientId` | — | — |
+| PATCH | `/:clientId` | — | Partial update |
 | DELETE | `/:clientId` | — | Soft delete |
+
+**POST `/clients` body:**
+```json
+{
+  "name": "Acme Corp",
+  "email": "billing@acme.com",
+  "phone": "+91 98765 43210",
+  "address": "123 Main St",
+  "companyName": "Acme Corporation",
+  "gstNumber": "22AAAAA0000A1Z5",
+  "notes": "Net-30 payment terms",
+  "tags": ["enterprise"]
+}
+```
 
 ---
 
 ## Products — `/api/v1/products`
 
-All routes require `verifyJWT + resolveWorkspace`. No `requireRole` — any workspace member.
+All routes require `verifyJWT + resolveWorkspace`.
 
 | Method | Path | Query | Notes |
 |--------|------|-------|-------|
 | GET | `/` | `page, limit, search, sortBy` | Paginated |
 | POST | `/` | — | `multipart/form-data`; field `imageUrl` |
 | GET | `/:productId` | — | — |
-| PATCH | `/:productId` | — | — |
+| PATCH | `/:productId` | — | Partial update |
 | DELETE | `/:productId` | — | Soft delete |
 
 ---
@@ -120,21 +142,16 @@ All routes require `verifyJWT + resolveWorkspace + requireRole(ALL)`.
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET | `/` | Paginated; query `page, limit, name, email` (client search via aggregation) |
+| GET | `/` | Query: `page, limit, name, email, sortBy, sortOrder`. Client search runs server-side via aggregation pipeline |
 | POST | `/` | Atomic number generation; price snapshots applied server-side |
-| GET | `/:id` | Populates client |
-| PATCH | `/:id` | Update items/tax/discount/dueDate/notes; recalculates totals |
+| GET | `/:id` | Populates `client` |
+| PATCH | `/:id` | Update items / tax / discount / dueDate / notes; recalculates totals |
 | DELETE | `/:id` | Soft delete |
-| PATCH | `/:id/status` | Body: `{ status }` |
+| PATCH | `/:id/status` | `{ status }` — see transitions below |
 | GET | `/:id/pdf` | Returns `application/pdf` |
 
-### Create Invoice Example
-```http
-POST /api/v1/invoices
-x-business-id: 64f1a2b3c4d5e6f7a8b9c0d0
-Authorization: Bearer <token>
-Content-Type: application/json
-
+**POST `/invoices` body:**
+```json
 {
   "clientId": "64f1a2b3c4d5e6f7a8b9c0d1",
   "items": [
@@ -142,9 +159,12 @@ Content-Type: application/json
   ],
   "tax": 18,
   "discount": 5,
-  "dueDate": "2025-12-31"
+  "dueDate": "2025-12-31",
+  "notes": "Due within 30 days"
 }
 ```
+
+**Response:**
 ```json
 {
   "statusCode": 201,
@@ -160,6 +180,9 @@ Content-Type: application/json
 }
 ```
 
+**Status transitions:**  
+`SENT` triggers a client email via Resend. `PAID` can be set manually here, but the canonical path is via `POST /payments` (atomic with payment record).
+
 ---
 
 ## Payments — `/api/v1/payments`
@@ -168,38 +191,29 @@ All routes require `verifyJWT + resolveWorkspace + requireRole(ALL)`.
 
 | Method | Path | Query | Notes |
 |--------|------|-------|-------|
-| GET | `/` | `page, limit, invoiceId, status, method, fromDate, toDate` | Paginated |
-| POST | `/` | — | Atomically closes invoice if `amount >= invoice.total` |
+| GET | `/` | `page, limit, invoiceId?, status?, method?, fromDate?, toDate?` | Paginated |
+| POST | `/` | — | Atomically records payment + closes invoice in one session |
 | GET | `/:paymentId` | — | — |
 
-### Create Payment Example
-```http
-POST /api/v1/payments
-x-business-id: 64f1a2b3c4d5e6f7a8b9c0d0
-Authorization: Bearer <token>
-Content-Type: application/json
-
+**POST `/payments` body:**
+```json
 {
   "invoiceId": "64f1a2b3c4d5e6f7a8b9c0d3",
   "amount": 1491,
-  "method": "UPI"
+  "method": "UPI",
+  "transactionId": "TXN123456",
+  "notes": "Paid via Google Pay"
 }
 ```
-```json
-{
-  "statusCode": 201,
-  "data": { "amount": 1491, "method": "UPI", "status": "SUCCESS" },
-  "message": "Payment recorded",
-  "success": true
-}
-```
-Invoice status is atomically updated to `PAID` in the same MongoDB session.
+
+If `amount >= invoice.total`, invoice status is atomically updated to `PAID` in the same MongoDB session.
 
 ---
 
 ## Pagination Response Shape
 
 All paginated endpoints return:
+
 ```json
 {
   "docs": [],
@@ -211,3 +225,16 @@ All paginated endpoints return:
   "hasPrevPage": false
 }
 ```
+
+---
+
+## Error Reference
+
+| Status | Cause |
+|--------|-------|
+| 400 | Validation failure (ZodError) or bad business logic (e.g. negative discount) |
+| 401 | Missing or invalid JWT |
+| 403 | Valid JWT but no membership in the requested workspace, or insufficient role |
+| 404 | Resource not found |
+| 409 | Conflict — duplicate username/email, or invoice already paid |
+| 500 | Unhandled server error (stack trace included in `development`) |

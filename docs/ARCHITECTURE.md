@@ -2,182 +2,246 @@
 
 ## Request Flow
 
-```mermaid
-flowchart LR
-    Client -->|HTTP + x-business-id| Router
-    Router --> verifyJWT
-    verifyJWT -->|req.user| resolveWorkspace
-    resolveWorkspace -->|req.workspace| requireRole
-    requireRole --> Controller
-    Controller --> Service
-    Service --> MongoDB
-    Service -->|upload| Cloudinary
-    Service -->|email/PDF| Resend
+```
+Client
+  │
+  ├── /api/v1/auth/*          verifyJWT (select routes) → Controller
+  ├── /api/v1/users/*         verifyJWT → Controller
+  ├── /api/v1/businesses/*    verifyJWT → Controller           (no resolveWorkspace — uses :businessId param)
+  └── /api/v1/{domain}/*      verifyJWT → resolveWorkspace → requireRole(roles) → Controller → Service → MongoDB
+                                                                                                         ↓
+                                                                                               Cloudinary / Resend
 ```
 
 ## Middleware Chain
 
-Every business-scoped route passes through three layers before reaching the controller:
+| Middleware | File | Input | Output | On Failure |
+|-----------|------|-------|--------|-----------|
+| `verifyJWT` | `auth.middleware.ts` | Cookie or `Authorization` header | `req.user` | 401 |
+| `resolveWorkspace` | `workspace.middleware.ts` | `x-business-id` header + `req.user._id` | `req.workspace` | 400 / 403 |
+| `requireRole(roles)` | `rbac.middleware.ts` | `req.workspace.role` | — | 403 |
 
-| Middleware | Input | Output | Failure |
-|-----------|-------|--------|---------|
-| `verifyJWT` | Cookie or `Authorization` header | `req.user` | 401 |
-| `resolveWorkspace` | `x-business-id` header + `req.user._id` | `req.workspace` | 400 / 403 |
-| `requireRole(roles)` | `req.workspace.role` | — | 403 |
+Business routes (`/businesses/:businessId`) skip `resolveWorkspace` — the path param provides business context directly.
 
-Business routes (`/businesses/:businessId`) skip `resolveWorkspace` — they use the path param directly and only require `verifyJWT`.
+### TypeScript Request Augmentation
 
-## Authentication Flows
+`req.user` and `req.workspace` are typed via declaration merging in `src/shared/@types/express/index.d.ts`:
 
-### Local Login
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant S as auth.service
-    participant DB as MongoDB
-
-    C->>S: POST /auth/login { email, password }
-    S->>DB: User.findOne({ email or username })
-    S->>S: bcrypt.compare(password, hash)
-    S->>S: jwt.sign → accessToken (15m)
-    S->>S: jwt.sign → refreshToken (7d)
-    S->>DB: user.refreshToken = refreshToken
-    S-->>C: Set-Cookie: accessToken + refreshToken (httpOnly)
+```typescript
+declare module "express-serve-static-core" {
+  interface Request {
+    user?: Pick<IUserDocument, "_id" | "email" | "name" | "username">;
+    workspace?: {
+      membershipId: IBusinessMemberDocument["_id"];
+      businessId:   IBusinessMemberDocument["businessId"];
+      role:         IBusinessMemberDocument["role"];
+    };
+  }
+}
 ```
 
-### Google OAuth
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant P as Passport
-    participant G as Google
-    participant DB as MongoDB
-
-    C->>P: GET /auth/google
-    P->>G: Redirect (scope: profile, email)
-    G-->>P: Callback with profile
-    P->>DB: findOne({ googleId } or { email })
-    alt New user
-        P->>DB: User.create({ name, email, googleId, avatar })
-    end
-    P-->>C: Set JWT cookies
-```
-
-### Password Reset
-
-```mermaid
-sequenceDiagram
-    C->>S: POST /auth/forgot-password { email }
-    S->>S: crypto.randomBytes(32) → rawToken
-    S->>S: SHA-256(rawToken) → hashedToken
-    S->>DB: user.passwordResetToken = hashedToken (expires 10m)
-    S->>Resend: Send email with rawToken in URL
-    C->>S: POST /auth/reset-password { token, userId, newPassword }
-    S->>S: SHA-256(token) → hash
-    S->>DB: findOne({ _id: userId, passwordResetToken: hash })
-    S->>S: Verify expiry; set new password; clear reset fields
-```
-
-## Workspace Resolution
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant W as resolveWorkspace
-    participant R as requireRole
-    participant Ctrl as Controller
-
-    C->>W: Request + x-business-id header
-    W->>W: BusinessMember.findOne({ businessId, memberId: req.user._id, isArchived: false })
-    alt Member found
-        W-->>R: req.workspace = { businessId, role, memberId }
-        R->>R: allowedRoles.includes(workspace.role)
-        R-->>Ctrl: Authorized
-    else Not found
-        W-->>C: 403 Forbidden
-    end
-```
+No unsafe casts anywhere in the middleware chain.
 
 ## Module Pattern
 
 All 8 domain modules follow the same 4-layer structure:
 
 ```
-*.model.ts      Mongoose schema, interface, indexes, plugins
-*.service.ts    Business logic, DB queries, external calls
-*.controller.ts Parse request → call service → send response
-*.route.ts      Route definitions + middleware chain
+src/modules/{domain}/
+  {Domain}.model.ts       Mongoose schema + TypeScript interface + indexes + plugins
+  {domain}.validation.ts  Zod schemas; inferred types used as service input types
+  {domain}.service.ts     Business logic, DB queries, external service calls
+  {domain}.controller.ts  Parse request → call service → send ApiResponse
+  {domain}.route.ts       Route definitions + middleware chain composition
 ```
 
-Controllers are intentionally thin. All business logic lives in services, making them independently testable.
+Controllers call `schema.parse(req.body)` / `schema.parse(req.params)` directly — no separate validation middleware. Zod-inferred types (`z.infer<typeof schema>`) are the service input types, enforcing the controller → service contract at compile time.
 
-## Engineering Decisions
+## Error Handling
 
-### 1. `BusinessMember` as a Join Entity
+A global error handler in `src/shared/middlewares/errorHandler.ts` is registered last in `app.ts`:
 
-**Problem**: A user can be OWNER in one business and EMPLOYEE in another. Role cannot live on `User`.
+```typescript
+export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
+  if (error instanceof ZodError) {
+    return res.status(400).json({ success: false, message: "Validation failed", errors: error.issues });
+  }
+  if (error instanceof ApiError) {
+    return res.status(error.statusCode).json({ success: false, message: error.message });
+  }
+  return res.status(500).json({ success: false, message: "Internal Server Error" });
+};
+```
 
-**Solution**: `BusinessMember` is a first-class document linking `User` ↔ `Business` with `role` and `permissions[]`. `resolveWorkspace` queries this per-request.
+Stack traces are included only in `NODE_ENV=development`.
 
-**Tradeoff**: Every business-scoped request requires a DB lookup. Production candidate for Redis caching.
+## Authentication Flows
 
----
+### Local Login
 
-### 2. `InvoiceCounter` for Atomic Sequence Numbers
+```
+POST /auth/login { email or username, password }
+  → User.findOne({ email } or { username })
+  → bcrypt.compare(password, user.password)
+  → jwt.sign → accessToken + refreshToken
+  → user.refreshToken = refreshToken (persisted)
+  → Set-Cookie: accessToken + refreshToken (httpOnly)
+```
 
-**Problem**: `MAX(invoiceNumber) + 1` races under concurrent requests — two requests can read the same max and generate duplicate numbers.
+### Token Refresh
 
-**Solution**: A dedicated `InvoiceCounter` collection with a compound unique index on `{ businessId, year }`. Uses `findOneAndUpdate + $inc + upsert` inside a MongoDB session alongside the `Invoice.create` call.
+```
+POST /auth/refresh-token { incomingRefreshToken }
+  → jwt.verify → User.findById
+  → compare stored refreshToken === incoming
+  → issue new accessToken + refreshToken pair
+```
 
-**Tradeoff**: Requires a MongoDB replica set. Standalone MongoDB cannot run sessions.
+### Google OAuth 2.0
 
----
+```
+GET /auth/google → Passport redirect to Google (profile + email scope)
+Google callback → findOne({ googleId } or { email })
+  → create user if new (no password field)
+  → issue JWT cookies → redirect to client
+```
 
-### 3. Price Snapshotting on Invoice Items
+### Password Reset
 
-**Problem**: If a product's price changes after an invoice is created, re-fetching the price at render time silently corrupts historical financial records.
+```
+POST /auth/forgot-password { email }
+  → crypto.randomBytes(32) → rawToken
+  → SHA-256(rawToken) → hashedToken stored in DB
+  → user.passwordResetTokenExpiry = now + 10 minutes
+  → Resend: reset URL with rawToken (never stored)
 
-**Solution**: Each `IInvoiceItem` stores `name`, `price`, and `total` at creation time. `productId` is retained for traceability only — pricing is never re-derived from it.
+POST /auth/reset-password { token, userId, newPassword }
+  → SHA-256(token) → hash
+  → User.findOne({ _id: userId, passwordResetToken: hash })
+  → verify expiry → set new bcrypt-hashed password → clear reset fields
+```
 
-**Tradeoff**: Invoice items diverge from the product catalog over time. This is the correct behavior for financial records.
+## Multi-Tenancy Design
 
----
+```
+Request + x-business-id header
+  → BusinessMember.findOne({ businessId, userId: req.user._id, isArchived: false })
+  → Not found → 403
+  → Found → req.workspace = { membershipId, businessId, role }
+```
 
-### 4. Atomic Payment + Invoice Closure
+Every downstream DB query includes `businessId` from `req.workspace`. Cross-tenant data access is not possible through the API layer.
 
-**Problem**: Recording a payment and marking the invoice `PAID` are two separate writes. A failure between them leaves the system in an inconsistent state.
+### Role Model
 
-**Solution**: Both writes happen in a single MongoDB session. If `amount >= invoice.total`, the invoice status is updated to `PAID` and the payment is created atomically. Either both succeed or both roll back.
+```
+OWNER    → full control including member management
+ADMIN    → all operations except destroying the business
+EMPLOYEE → read/write operations; cannot manage members or roles
+```
 
----
+`requireRole` is a composable factory:
 
-### 5. Header-Based Workspace Selection
+```typescript
+export const requireRole = (roles: BusinessRole | BusinessRole[]) =>
+  asyncHandler(async (req, _, next) => {
+    const allowed = Array.isArray(roles) ? roles : [roles];
+    if (!allowed.includes(req.workspace!.role)) throw new ApiError(403, "Forbidden");
+    next();
+  });
+```
 
-**Problem**: A user belongs to multiple businesses. The active business must be selected per-request without re-authentication.
+## Key Service Patterns
 
-**Solution**: `x-business-id` header selects the workspace. `resolveWorkspace` validates membership and attaches context. This keeps route paths flat and allows per-request context switching.
+### Atomic Invoice Number Generation
 
-**Tradeoff**: URL-prefix tenancy (`/businesses/:id/invoices`) is more REST-conventional but would require restructuring all routes.
+`InvoiceCounter` collection with compound unique index `{ businessId, year }`:
 
----
+```typescript
+const counter = await InvoiceCounter.findOneAndUpdate(
+  { businessId, year },
+  { $inc: { sequence: 1 } },
+  { new: true, upsert: true }
+).session(session);
 
-### 6. Aggregate Pipeline for Cross-Collection Search
+const invoiceNumber = `INV-${year}-${String(counter.sequence).padStart(4, "0")}`;
+```
 
-**Problem**: Invoice search by client name/email requires joining across collections. Standard MongoDB queries cannot filter on joined data.
+Counter increment and `Invoice.create` happen in the same MongoDB session — both commit or both roll back.
 
-**Solution**: `$match` on `businessId` → `$lookup` clients → `$addFields` to unwrap → second `$match` on joined client fields → `$sort` → `aggregatePaginate`. Filtering stays server-side.
+### Price Snapshotting
 
----
+```typescript
+const invoiceItems = mergedItems.map(item => ({
+  productId: product._id,       // traceability only — never used for pricing
+  name:      product.name,      // snapshot
+  price:     product.price,     // snapshot
+  total:     product.price * item.quantity,  // snapshot
+}));
+```
+
+Product price changes after creation have no effect on historical records.
+
+### Atomic Payment + Invoice Closure
+
+```typescript
+const session = await startSession();
+session.startTransaction();
+try {
+  if (amount >= invoice.total) {
+    invoice.status = INVOICE_STATUS.PAID;
+    await invoice.save({ session });
+  }
+  [payment] = await Payment.create([{ ... }], { session });
+  await session.commitTransaction();
+} catch (e) {
+  await session.abortTransaction();
+  throw e;
+} finally {
+  await session.endSession();
+}
+```
+
+### Aggregation Pipeline Search
+
+Invoice search by client name/email uses `$lookup` + post-join `$match`:
+
+```typescript
+Invoice.aggregate([
+  { $match: { businessId, isArchived: false } },
+  { $lookup: { from: "clients", localField: "client", foreignField: "_id", as: "client" } },
+  { $addFields: { client: { $arrayElemAt: ["$client", 0] } } },
+  { $match: { "client.email": { $regex: email, $options: "i" } } },
+  { $sort: { [sortBy]: sortOrder } },
+])
+```
+
+## Shared Utilities
+
+| Utility | Purpose |
+|---------|---------|
+| `ApiError` | Structured error: `statusCode`, `message`, `errors[]` |
+| `ApiResponse` | Uniform success envelope: `{ statusCode, data, message, success }` |
+| `asyncHandler` | Wraps async handlers; forwards rejected promises to `next(err)` |
+| `errorHandler` | Global Express error handler; handles `ZodError`, `ApiError`, and unknown errors |
+
+## Constants
+
+`src/consts.ts` is the canonical source for all enums:
+
+```
+BUSINESS_ROLE    → OWNER | ADMIN | EMPLOYEE
+PRODUCT_TYPE     → PRODUCT | SERVICE
+INVOICE_STATUS   → DRAFT | SENT | PAID | OVERDUE | CANCELLED
+PAYMENT_METHOD   → CASH | UPI | BANK | CARD
+PAYMENT_STATUS   → SUCCESS | PENDING | FAILED
+```
 
 ## Known Issues
 
-| Issue | Impact | Fix |
-|-------|--------|-----|
-| `workspace.middleware.ts` queries `userId` instead of `memberId` | All workspace-scoped routes return 403 | Change `userId` → `memberId` |
-| `@types/express/index.d.ts` imports from wrong path (`businessMember` vs `business-member`) | TypeScript compilation fails | Fix import path |
-| `changeInvoiceStatus` uses `=` instead of `===` | All status changes throw 400 | Change to `===` |
-| `passport.ts` omits `provider: "google"` on user creation | Google users get `provider: "local"` | Add `provider: "google"` |
-| No global error handler in `app.ts` | Unhandled errors produce no structured response | Add `(err, req, res, next)` middleware |
-| `removeOnCloudinary` never called | Old images accumulate in Cloudinary | Call on logo/avatar replacement |
+| Issue | Impact |
+|-------|--------|
+| `helmet` imported after first use in `app.ts` | Works at runtime due to hoisting but misleading |
+| Product image update route not implemented | `removeOnCloudinary` is wired for avatar and logo only; product image replacement is out of scope for the current API |
+| `generateInvoicePdf` uses `process.cwd()` for template path | Breaks if server is not started from project root |
+| No integration tests | Cannot verify transactional correctness automatically |

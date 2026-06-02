@@ -1,179 +1,165 @@
 # Database Design
 
-## Entity Relationship Diagram
+## Entity Relationships
 
-```mermaid
-erDiagram
-    User ||--o{ BusinessMember : "memberId"
-    Business ||--o{ BusinessMember : "businessId"
-    Business ||--o{ Client : "businessId"
-    Business ||--o{ Product : "businessId"
-    Business ||--o{ Invoice : "businessId"
-    Business ||--o{ Payment : "businessId"
-    Business ||--o{ InvoiceCounter : "businessId"
-    Client ||--o{ Invoice : "client"
-    Invoice ||--o{ Payment : "invoiceId"
-
-    User {
-        string username UK
-        string email UK
-        string password
-        string googleId
-        string provider
-        object avatar
-        bool isVerified
-        bool isArchived
-    }
-    Business {
-        string name
-        string slug UK
-        ObjectId createdBy
-        object settings
-        string plan
-        bool isArchived
-    }
-    BusinessMember {
-        ObjectId businessId
-        ObjectId memberId
-        string role
-        array permissions
-        bool isArchived
-    }
-    Client {
-        ObjectId businessId
-        string name
-        string email
-        string gstNumber
-        array tags
-        bool isArchived
-    }
-    Product {
-        ObjectId businessId
-        string name
-        string type
-        number price
-        string sku
-        object image
-        bool isArchived
-    }
-    Invoice {
-        string invoiceNumber UK
-        ObjectId businessId
-        ObjectId client
-        array items
-        number subtotal
-        number tax
-        number discount
-        number total
-        string status
-        date dueDate
-        bool isArchived
-    }
-    InvoiceCounter {
-        ObjectId businessId
-        number year
-        number sequence
-    }
-    Payment {
-        ObjectId businessId
-        ObjectId invoiceId
-        number amount
-        string method
-        string status
-        date paidAt
-        bool isArchived
-    }
+```
+User ──< BusinessMember >── Business
+                               │
+              ┌────────────────┼──────────────────┐
+              │                │                  │
+           Client           Product          InvoiceCounter
+              │                │               (per business/year)
+              └────> Invoice <─┘
+                       │
+                    Payment
 ```
 
-## Collections & Schemas
+One `User` can be a member of many `Business`es. Each `BusinessMember` record carries the `role` for that relationship. All domain collections are scoped to a `businessId`.
+
+## Collections
 
 ### User
+
 | Field | Type | Notes |
 |-------|------|-------|
 | `username` | String | Unique, indexed, lowercase |
 | `email` | String | Unique, indexed, lowercase |
 | `password` | String | bcrypt hashed; absent for Google-only accounts |
 | `googleId` | String | Set on OAuth login |
-| `provider` | `"local"` \| `"google"` | Default: `"local"` |
+| `provider` | `"local" \| "google"` | Default `"local"` |
 | `avatar` | `{ url, publicId }` | Cloudinary reference |
-| `refreshToken` | String | Stored for validation on refresh |
+| `refreshToken` | String | Stored for rotation validation |
 | `passwordResetToken` | String | SHA-256 hash of raw token |
 | `passwordResetTokenExpiry` | Date | 10-minute window |
+| `isVerified` | Boolean | Default `false` |
 | `isArchived` | Boolean | Soft delete |
 
-Methods: `generateAccessToken()`, `generateRefreshToken()`, `isPasswordCorrect(password)`
+Instance methods: `generateAccessToken()`, `generateRefreshToken()`, `isPasswordCorrect(password)`  
+Pre-save hook: bcrypt hashes `password` on modification.
 
 ---
 
 ### Business
+
 | Field | Type | Notes |
 |-------|------|-------|
 | `name` | String | Required |
-| `slug` | String | Unique, auto-generated via slugify |
+| `slug` | String | Unique; auto-generated via `slugify` |
 | `createdBy` | ObjectId | ref: User |
 | `logo` | `{ url, publicId }` | Cloudinary reference |
-| `settings.currency` | String | Default: `"INR"` |
-| `settings.invoicePrefix` | String | Default: `"INV"` |
-| `settings.enableTaxes` | Boolean | Default: `true` |
-| `settings.taxPercentage` | Number | Default: `18` |
-| `plan` | `"free"` \| `"pro"` | Default: `"free"` |
+| `settings.currency` | String | Default `"INR"` |
+| `settings.invoicePrefix` | String | Default `"INV"` |
+| `settings.enableTaxes` | Boolean | Default `true` |
+| `settings.taxPercentage` | Number | Default `18` |
+| `plan` | `"free" \| "pro"` | Default `"free"` |
+| `isArchived` | Boolean | Soft delete |
 
 ---
 
 ### BusinessMember
+
 | Field | Type | Notes |
 |-------|------|-------|
 | `businessId` | ObjectId | ref: Business, indexed |
-| `memberId` | ObjectId | ref: User, indexed |
-| `role` | `OWNER` \| `ADMIN` \| `EMPLOYEE` | Default: `EMPLOYEE` |
+| `userId` | ObjectId | ref: User, indexed |
+| `role` | `OWNER \| ADMIN \| EMPLOYEE` | Default `EMPLOYEE` |
 | `permissions` | String[] | Reserved for fine-grained control |
+| `isArchived` | Boolean | Soft delete (inactive member) |
+
+Compound unique index: `{ businessId, userId }` — one active membership per user per business.
+
+---
+
+### Client
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `businessId` | ObjectId | ref: Business, indexed |
+| `name` | String | Required; text-indexed |
+| `email` | String | — |
+| `phone` | String | — |
+| `address` | String | — |
+| `companyName` | String | — |
+| `gstNumber` | String | — |
+| `tags` | String[] | — |
+| `isArchived` | Boolean | Soft delete |
+
+---
+
+### Product
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `businessId` | ObjectId | ref: Business, indexed |
+| `name` | String | Required; text-indexed |
+| `type` | `PRODUCT \| SERVICE` | Default `PRODUCT` |
+| `description` | String | — |
+| `price` | Number | Required, non-negative |
+| `sku` | String | Sparse unique index |
+| `image` | `{ url, publicId }` | Cloudinary reference |
+| `isArchived` | Boolean | Soft delete |
 
 ---
 
 ### Invoice
+
 | Field | Type | Notes |
 |-------|------|-------|
 | `invoiceNumber` | String | Unique; format `INV-YYYY-NNNN` |
 | `businessId` | ObjectId | ref: Business, indexed |
 | `client` | ObjectId | ref: Client, indexed |
-| `items` | `IInvoiceItem[]` | Embedded; price-snapshotted |
+| `items` | `IInvoiceItem[]` | Embedded; price-snapshotted at creation |
 | `subtotal` | Number | Sum of `item.total` |
-| `tax` | Number | Percentage (0–100) |
-| `discount` | Number | Percentage (0–100) |
-| `total` | Number | After tax and discount |
+| `tax` | Number | Percentage (0–100); default `0` |
+| `discount` | Number | Percentage (0–100); default `0` |
+| `total` | Number | `subtotal → apply discount → apply tax` |
+| `currency` | String | Default `"INR"` |
 | `status` | Enum | `DRAFT \| SENT \| PAID \| OVERDUE \| CANCELLED` |
+| `issuedDate` | Date | Default: today at UTC midnight |
+| `dueDate` | Date | Optional |
+| `notes` | String | Optional |
+| `createdBy` | ObjectId | ref: User |
 | `paidAt` | Date | Set on payment closure |
+| `isArchived` | Boolean | Soft delete |
 
-**IInvoiceItem** (embedded, no `_id`):
-```
-productId  → traceability only
-name       → snapshot at creation
-price      → snapshot at creation
-total      → price × quantity (snapshot)
-```
+**IInvoiceItem** (embedded subdocument, no `_id`):
+
+| Field | Notes |
+|-------|-------|
+| `productId` | Retained for traceability only — never used to re-derive pricing |
+| `name` | Snapshot at creation time |
+| `price` | Snapshot at creation time |
+| `quantity` | — |
+| `total` | `price × quantity`; snapshot |
 
 ---
 
 ### Payment
+
 | Field | Type | Notes |
 |-------|------|-------|
 | `businessId` | ObjectId | ref: Business, indexed |
 | `invoiceId` | ObjectId | ref: Invoice |
 | `amount` | Number | Required |
-| `method` | Enum | `CASH \| UPI \| BANK \| CARD` |
-| `status` | Enum | `SUCCESS \| PENDING \| FAILED` |
+| `method` | `CASH \| UPI \| BANK \| CARD` | Default `CASH` |
+| `status` | `SUCCESS \| PENDING \| FAILED` | Default `SUCCESS` |
+| `transactionId` | String | External reference; optional |
+| `notes` | String | Optional |
 | `paidAt` | Date | Default: now |
+| `createdBy` | ObjectId | ref: User |
+| `isArchived` | Boolean | Soft delete |
 
 ---
 
 ### InvoiceCounter
+
 | Field | Type | Notes |
 |-------|------|-------|
 | `businessId` | ObjectId | ref: Business |
 | `year` | Number | Calendar year |
-| `sequence` | Number | Auto-incremented per business per year |
+| `sequence` | Number | Auto-incremented; default `0` |
 
-Unique compound index: `{ businessId, year }`. Used only by `invoice.service.ts` inside a MongoDB session.
+Compound unique index: `{ businessId, year }`. Incremented via `findOneAndUpdate + $inc + upsert` inside a MongoDB session alongside `Invoice.create`.
 
 ---
 
@@ -181,12 +167,15 @@ Unique compound index: `{ businessId, year }`. Used only by `invoice.service.ts`
 
 | Collection | Index | Type | Purpose |
 |-----------|-------|------|---------|
-| `users` | `username`, `email` | Unique | Login lookup |
+| `users` | `username` | Unique | Login lookup |
+| `users` | `email` | Unique | Login + duplicate check |
 | `businesses` | `slug` | Unique | URL routing |
-| `businessmembers` | `businessId`, `memberId` | Standard | Workspace resolution |
-| `clients` | `name` | Text | Search |
+| `businessmembers` | `businessId` | Standard | Member listing |
+| `businessmembers` | `userId` | Standard | Workspace resolution |
+| `businessmembers` | `{ businessId, userId }` | Compound unique | One membership per user per business |
 | `clients` | `businessId` | Standard | Tenant scoping |
-| `products` | `name` | Text | Search |
+| `clients` | `name` | Text | Search |
+| `products` | `businessId` | Standard | Tenant scoping |
 | `products` | `sku` | Sparse unique | SKU uniqueness |
 | `invoices` | `invoiceNumber` | Unique | Number uniqueness |
 | `invoices` | `businessId`, `client`, `status` | Standard | Filtering |
@@ -195,8 +184,10 @@ Unique compound index: `{ businessId, year }`. Used only by `invoice.service.ts`
 | `payments` | `{ businessId, invoiceId }` | Compound | Invoice payment lookup |
 | `payments` | `{ businessId, status }` | Compound | Status filtering |
 
-## Common Patterns Across All Models
+## Common Patterns
+
+All collections share:
 
 - `isArchived: boolean` (default `false`) — soft delete; all queries filter `{ isArchived: false }`
 - `timestamps: true` — Mongoose adds `createdAt`, `updatedAt`
-- `metadata: Record<string, unknown>` — schema extensibility without migrations
+- `businessId` on all tenant-scoped documents — every query includes tenant isolation at the DB layer
