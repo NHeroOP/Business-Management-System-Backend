@@ -13,6 +13,10 @@ app.use(
   }),
 );
 
+app.use(helmet({
+  strictTransportSecurity: process.env.NODE_ENV === 'production'
+}))
+
 app.use(
   express.json({
     limit: "16kb",
@@ -40,6 +44,7 @@ import paymentRouter from "./modules/payment/payment.route.js";
 import productRouter from "./modules/product/product.route.js";
 import businessRouter from "./modules/business/business.route.js";
 import businessMemberRouter from "./modules/business-member/businessMember.route.js";
+import helmet from "helmet";
 
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/users", userRouter);
