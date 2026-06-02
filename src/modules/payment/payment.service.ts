@@ -1,47 +1,28 @@
 import { ApiError } from "@/shared/utils/ApiError.js"
 import { startSession, Types } from "mongoose"
-import { Payment, type IPayment, type IPaymentDocument } from "./Payment.model.js"
+import { Payment, type IPaymentDocument } from "./Payment.model.js"
 import { INVOICE_STATUS, PAYMENT_STATUS, type PaymentMethod, type PaymentStatus } from "@/consts.js"
 import { Invoice } from "../invoice/Invoice.model.js"
+import type { CreatePaymentInput, FindPaymentsInput, PaymentIdParam } from "./payment.validation.js"
 
 
-interface IdParams {
+type PaymentContext = PaymentIdParam & {
   businessId: string | Types.ObjectId,
-  paymentId: string | Types.ObjectId
 }
 
-interface CreatePaymentParams {
+type CreatePaymentPayload = CreatePaymentInput & {
   businessId: Types.ObjectId;
-  invoiceId: Types.ObjectId;
-  amount: number;
-  method?: PaymentMethod
-  status?: PaymentStatus;
-  transactionId?: string;
-  notes?: string;
-  paidAt?: Date;
   createdBy: Types.ObjectId;
 }
 
-interface FindPaymentsPayload {
+type FindPaymentsPayload = FindPaymentsInput & {
   businessId: Types.ObjectId;
-  invoiceId?: Types.ObjectId | string;
-  status?: PaymentStatus | undefined;
-  method?: PaymentMethod | undefined;
-  fromDate?: Date | undefined;
-  toDate?: Date | undefined;
-  sortBy?: string;
-  sortOrder?: 1 | -1;
-  page?: number;
-  limit?: number;
 }
 
 export const createPayment = async (
-  payload: CreatePaymentParams
+  payload: CreatePaymentPayload
 ) => {
-
-  
-
-  const { businessId, invoiceId, amount, method, status, transactionId, notes, paidAt, createdBy } = payload;
+  const { businessId, createdBy, invoiceId, amount, method, status, transactionId, notes, paidAt } = payload;
   if (!invoiceId || !amount || !createdBy) { 
     throw new ApiError(400, "Invoice ID, amount and createdBy are required");
   }
@@ -148,7 +129,7 @@ export const findPayments = async (
 }
 
 export const findPaymentById = async (
-  {businessId, paymentId}: IdParams
+  {businessId, paymentId}: PaymentContext
 ): Promise<IPaymentDocument> => {
   if (!paymentId) {
     throw new ApiError(400, "Payment ID is required");
