@@ -1,5 +1,4 @@
 import type { Request, Response } from "express";
-import type { Types } from "mongoose";
 
 import {
   createProduct as createProductService,
@@ -8,17 +7,25 @@ import {
   updateProduct as updateProductService,
   archiveProduct
 } from "./product.service.js";
+import {
+  createProductSchema,
+  FindProductsQuerySchema,
+  productIdParamSchema,
+  updateProductSchema
+} from "./product.validation.js";  
 
 import { ApiResponse } from "@/shared/utils/ApiResponse.js";
 import { asyncHandler } from "@/shared/utils/asyncHandler.js";
 
 
 export const createProduct = asyncHandler(async (req: Request, res: Response) => {
+  const body = createProductSchema.parse(req.body);
+
   const product = await createProductService({
     businessId: req.workspace!.businessId,
     createdBy: req.user!._id,
-    imageUrl: req.file ? req.file.path : undefined,
-    ...req.body
+    ...(req.file && { imageUrl: req.file.path }),
+    ...body
   });
 
   return res.status(201).json(
@@ -27,14 +34,14 @@ export const createProduct = asyncHandler(async (req: Request, res: Response) =>
 });
 
 export const getProducts = asyncHandler(async (req: Request, res: Response) => {
-  const { page = 1, limit = 10, search, sortBy } = req.query;
+  const { page = 1, limit = 10, search, sortBy } = FindProductsQuerySchema.parse(req.query);
 
   const products = await findProducts({
     businessId: req.workspace!.businessId,
-    page: parseInt(page as string),
-    limit: parseInt(limit as string),
-    search: search as string,
-    sortBy: sortBy as string,
+    page,
+    limit,
+    search,
+    sortBy,
   });
 
   return res.status(200).json(
@@ -43,9 +50,12 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getProductById = asyncHandler(async (req: Request, res: Response) => {
-  const product = await findProductById(
-    req.params.productId as string
-  );
+  const { productId } = productIdParamSchema.parse(req.params);
+
+  const product = await findProductById({
+    businessId: req.workspace!.businessId,
+    productId
+  });
 
   return res.status(200).json(
     new ApiResponse(200, product, "Product retrieved successfully")
@@ -53,11 +63,13 @@ export const getProductById = asyncHandler(async (req: Request, res: Response) =
 });
 
 export const updateProduct = asyncHandler(async (req: Request, res: Response) => {
-  const { name, description, type, price, stockQuantity, sku, category } = req.body;
+  const body = updateProductSchema.parse(req.body);
+  const { productId } = productIdParamSchema.parse(req.params);
 
   const updatePayload = {
-    productId: req.params.productId as Types.ObjectId | string,
-    updateData: {name, description, type, price, stockQuantity, sku, category }
+    businessId: req.workspace!.businessId,
+    productId,
+    ...body,
   }
 
   await updateProductService(updatePayload);
@@ -68,9 +80,11 @@ export const updateProduct = asyncHandler(async (req: Request, res: Response) =>
 });
 
 export const deleteProduct = asyncHandler(async (req: Request, res: Response) => {
+  const { productId } = productIdParamSchema.parse(req.params);
+
   await archiveProduct({
     businessId: req.workspace!.businessId,
-    productId: req.params.productId as string,
+    productId
   });
 
   return res.status(200).json(

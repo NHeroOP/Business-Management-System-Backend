@@ -1,33 +1,25 @@
 import { uploadOnCloudinary } from "@/shared/config/cloudinary.js";
-import { Product, type IProduct, type IProductDocument } from "./Product.model.js";
+import { Product, type IProductDocument } from "./Product.model.js";
 
 import { ApiError } from "@/shared/utils/ApiError.js";
 import { Types, type AggregatePaginateResult } from "mongoose";
+import type { CreateProductInput, FindProductsQuery, ProductIdParam, UpdateProductInput } from "./product.validation.js";
 
-export interface CreateProductPayload extends Omit<
-  IProduct,
-  "metadata" | "isArchived" | "image"
-> {
+type CreateProductPayload = CreateProductInput & {
+  businessId: Types.ObjectId;
+  createdBy: Types.ObjectId;
   imageUrl?: string;
 }
 
-interface FindProductsPayload {
-  businessId: Types.ObjectId | string;
-  page?: number;
-  limit?: number;
-  search?: string;
-  sortBy?: string;
+type FindProductsPayload = FindProductsQuery & {
+  businessId: Types.ObjectId;
 }
 
-interface ArchiveProductPayload {
-  businessId: Types.ObjectId | string;
-  productId: Types.ObjectId | string;
+type ProductContext = ProductIdParam & {
+  businessId: Types.ObjectId;
 }
 
-interface UpdateProductPayload {
-  productId: Types.ObjectId | string;
-  updateData: Partial<Omit<IProduct, "businessId" | "createdBy" | "isArchived" | "image" | "metadata">>;
-}
+type UpdateProductPayload = UpdateProductInput & ProductContext;
 
 
 export const createProduct = async (
@@ -98,7 +90,7 @@ export const createProduct = async (
 export const findProducts = async (
   payload: FindProductsPayload
 ): Promise<AggregatePaginateResult<IProductDocument>> => {
-  const { businessId, page = 1, limit = 10, search, sortBy } = payload;
+  const { businessId, page, limit, search, sortBy } = payload;
   
   const productAggregate = Product.aggregate([
     {
@@ -124,9 +116,9 @@ export const findProducts = async (
 };
 
 export const findProductById = async (
-  productId: Types.ObjectId | string
+  { businessId, productId }: ProductContext
 ): Promise<IProductDocument> => {
-  const product = await Product.findById(productId).select("-metadata");
+  const product = await Product.findOne({ _id: productId, businessId }).select("-metadata");
 
   if (!product) {
     throw new ApiError(404, "Product not found");
@@ -138,38 +130,41 @@ export const findProductById = async (
 export const updateProduct = async (
   payload: UpdateProductPayload
 ): Promise<void> => {
-  const { productId, updateData } = payload;
+  const { businessId, productId, ...updateData } = payload;
 
-  const product = await Product.findOne({
-    _id: productId,
-    isArchived: false,
-  });
+  const product = await Product.findOneAndUpdate(
+    {
+      _id: productId,
+      businessId: businessId,
+      isArchived: false,
+    },
+    { ...updateData },
+    { "returnDocument": "after" }
+  );
 
   if (!product) {
     throw new ApiError(404, "Product not found");
   }
-
-  Object.assign(product, updateData);
-  await product.save();
 };
 
 export const archiveProduct = async (
-  { businessId, productId }: ArchiveProductPayload
+  { businessId, productId }: ProductContext
 ): Promise<void> => { 
   if (!productId) {
     throw new ApiError(400, "Product ID is required");
   }
 
-  const product = await Product.findOne({
+  const product = await Product.findOneAndUpdate({
     _id: productId,
     businessId: businessId,
     isArchived: false,
+  }, {
+    isArchived: true
+  }, {
+    "returnDocument": "after"
   });
 
   if (!product) {
     throw new ApiError(404, "Product not found");
   }
-
-  product.isArchived = true;
-  await product.save();
 };
