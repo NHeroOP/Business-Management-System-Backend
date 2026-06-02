@@ -7,14 +7,14 @@ import {
   updateUserAvatar,
   updateUserProfile
 } from "./user.service.js";
+import { changePasswordSchema, updateProfileSchema, userIdParamSchema } from "./user.validation.js";
 
-import { ApiError } from "@/shared/utils/ApiError.js";
 import { ApiResponse } from "@/shared/utils/ApiResponse.js";
 import { asyncHandler } from "@/shared/utils/asyncHandler.js";
 
 
 export const getMyProfile = asyncHandler(async (req: Request, res: Response) => { 
-  const user = await getUserProfile(req?.user?._id);
+  const user = await getUserProfile(req.user!._id);
 
   return res.status(200).json(
     new ApiResponse(200, user, "User profile retrieved successfully")
@@ -22,9 +22,9 @@ export const getMyProfile = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const updateMyProfile = asyncHandler(async (req: Request, res: Response) => { 
-  const { name } = req.body;
+  const { name } = updateProfileSchema.parse(req.body);
 
-  const user = await updateUserProfile({ userId: req?.user?._id, name });
+  const user = await updateUserProfile({ userId: req.user!._id, name });
 
   return res.status(200).json(
     new ApiResponse(200, user, "User profile updated successfully")
@@ -32,9 +32,9 @@ export const updateMyProfile = asyncHandler(async (req: Request, res: Response) 
 });
 
 export const changePassword = asyncHandler(async (req: Request, res: Response) => { 
-  const { currentPassword, newPassword } = req.body;
+  const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
 
-  await changeUserPassword({ userId: req?.user?._id, currentPassword, newPassword });
+  await changeUserPassword({ userId: req.user!._id, currentPassword, newPassword });
 
   return res.status(200).json(
     new ApiResponse(200, {}, "Password changed successfully")
@@ -43,7 +43,7 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
 
 export const updateAvatar = asyncHandler(async (req: Request, res: Response) => { 
   const avatarLocalPath = req.file?.path;
-  await updateUserAvatar({ userId: req?.user?._id, avatarLocalPath });
+  await updateUserAvatar({ userId: req.user!._id, avatarLocalPath });
 
   return res.status(200).json(
     new ApiResponse(200, {}, "Avatar updated successfully")
@@ -51,7 +51,8 @@ export const updateAvatar = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const getUserById = asyncHandler(async (req: Request, res: Response) => { 
-  const user = await findUserById(req.params.id);
+  const { userId } = userIdParamSchema.parse(req.params);
+  const user = await findUserById(userId);
 
   return res.status(200).json(
     new ApiResponse(200, user, "User profile retrieved successfully")

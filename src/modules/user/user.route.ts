@@ -25,6 +25,6 @@ router.route("/change-password")
 router.route("/update-avatar")
   .patch(upload.single("avatarUrl"), updateAvatar);
 
-router.route("/:id").get(getUserById);
+router.route("/:userId").get(getUserById);
 
 export default router;

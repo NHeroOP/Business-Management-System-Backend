@@ -1,27 +1,28 @@
 import type { Types } from "mongoose";
 
 import { User } from "./User.model.js";
+import type { ChangePasswordInput, UpdateProfileInput, UserIdParam } from "./user.validation.js";
+
 import { ApiError } from "@/shared/utils/ApiError.js";
 import { uploadOnCloudinary } from "@/shared/config/cloudinary.js";
 
 
-interface UpdateUserProfileServiceInput { 
-  userId: Types.ObjectId | undefined;
-  name: string;
+type UpdateUserProfileServicePayload = UpdateProfileInput & { 
+  userId: Types.ObjectId
 }
 
-interface ChangePasswordServiceInput {
-  userId: Types.ObjectId | undefined;
-  currentPassword: string;
-  newPassword: string;
+type ChangePasswordServicePayload = ChangePasswordInput & {
+  userId: Types.ObjectId
 }
 
 interface UpdateUserAvatarServiceInput {
-  userId: Types.ObjectId | undefined;
+  userId: Types.ObjectId;
   avatarLocalPath: string | undefined;
 }
 
-export const getUserProfile = async (userId: Types.ObjectId | undefined) => { 
+export const getUserProfile = async (
+  userId: Types.ObjectId
+) => { 
   if (!userId) { 
     throw new ApiError(400, "User ID is required");
   }
@@ -38,7 +39,9 @@ export const getUserProfile = async (userId: Types.ObjectId | undefined) => {
 
 };
 
-export const updateUserProfile = async ({ userId, name }: UpdateUserProfileServiceInput) => {
+export const updateUserProfile = async (
+  { userId, name }: UpdateUserProfileServicePayload
+) => {
   if (!userId) {
     throw new ApiError(400, "User ID is required");
   }
@@ -60,7 +63,9 @@ export const updateUserProfile = async ({ userId, name }: UpdateUserProfileServi
   return user;
 };
 
-export const changeUserPassword = async ({ userId, currentPassword, newPassword }: ChangePasswordServiceInput) => { 
+export const changeUserPassword = async (
+  { userId, currentPassword, newPassword }: ChangePasswordServicePayload
+) => { 
   if (!userId) {
     throw new ApiError(400, "User ID is required");
   }
@@ -86,7 +91,9 @@ export const changeUserPassword = async ({ userId, currentPassword, newPassword 
   await user.save();
 };
 
-export const updateUserAvatar = async ({ userId, avatarLocalPath }: UpdateUserAvatarServiceInput) => { 
+export const updateUserAvatar = async (
+  { userId, avatarLocalPath }: UpdateUserAvatarServiceInput
+) => { 
   if (!userId) {
     throw new ApiError(400, "User ID is required");
   }
@@ -118,7 +125,9 @@ export const updateUserAvatar = async ({ userId, avatarLocalPath }: UpdateUserAv
   return user;
 };
 
-export const findUserById = async (userId: string | string[] | undefined) => { 
+export const findUserById = async (
+  userId: UserIdParam["userId"]
+) => { 
   if (!userId) { 
     throw new ApiError(400, "User ID is required");
   }
