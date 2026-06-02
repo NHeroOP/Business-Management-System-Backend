@@ -14,7 +14,7 @@ import type {
 } from "./business.validation.js";
 
 import { ApiError } from "@/shared/utils/ApiError.js";
-import { uploadOnCloudinary } from "@/shared/config/cloudinary.js";
+import { removeOnCloudinary, uploadOnCloudinary } from "@/shared/config/cloudinary.js";
 import { BusinessMember } from "../business-member/BusinessMember.model.js";
 import { BUSINESS_ROLE } from "@/consts.js";
 
@@ -147,7 +147,7 @@ export const updateBusinessDetails = async ({
 export const updateBusinessLogo = async ({
   businessId,
   logoUrl,
-}: UpdateBusinessLogoPayload): Promise<IBusinessDocument> => {
+}: UpdateBusinessLogoPayload): Promise<void> => {
   if (!businessId || !logoUrl) {
     throw new ApiError(400, "Business ID, and Logo URL are required");
   }
@@ -161,12 +161,11 @@ export const updateBusinessLogo = async ({
   const business = await Business.findOneAndUpdate(
     { _id: businessId },
     { logo },
-    { returnDocument: "after" },
   ).select("-isArchived -metadata");
+  
+  await removeOnCloudinary(business?.logo?.publicId);
 
   if (!business) {
     throw new ApiError(404, "Business not found or failed to update");
   }
-
-  return business;
 };
