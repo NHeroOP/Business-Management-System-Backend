@@ -4,7 +4,7 @@ import { User } from "./User.model.js";
 import type { ChangePasswordInput, UpdateProfileInput, UserIdParam } from "./user.validation.js";
 
 import { ApiError } from "@/shared/utils/ApiError.js";
-import { uploadOnCloudinary } from "@/shared/config/cloudinary.js";
+import { removeOnCloudinary, uploadOnCloudinary } from "@/shared/config/cloudinary.js";
 
 
 type UpdateUserProfileServicePayload = UpdateProfileInput & { 
@@ -115,14 +115,15 @@ export const updateUserAvatar = async (
           publicId: avatar.public_id,
         }
       }
-    }, { returnDocument: "after" })
+    })
     .select("-password -refreshToken -passwordResetToken -passwordResetTokenExpiry -googleId");
+  
+  await removeOnCloudinary(user?.avatar?.publicId!);
 
   if (!user) {
     throw new ApiError(404, "User not found");
   }
 
-  return user;
 };
 
 export const findUserById = async (

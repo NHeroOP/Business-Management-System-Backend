@@ -8,19 +8,6 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET!!
 });
 
-const getPublicId = (url: string | undefined) => {
-  if (!url) return null
-
-  const afterUpload = url.split("/upload/")[1];
-  const parts = afterUpload!!.split("/");
-
-  if (parts[0]!!.startsWith("v")) {
-    parts.shift();
-  }
-
-  return parts.join("/").replace(/\.[^/.]+$/, "");
-}
-
 export const uploadOnCloudinary = async (localFilePath: string) => {
   try {
     if (!localFilePath) return null
@@ -40,13 +27,11 @@ export const uploadOnCloudinary = async (localFilePath: string) => {
 }
 
 
-export const removeOnCloudinary = async (url: string | undefined) => {
+export const removeOnCloudinary = async (publicId: string | undefined) => {
   try {
-    if (!url) return null
-    const id = getPublicId(url);
-    if (!id) return null
+    if (!publicId) return null
 
-    await cloudinary.uploader.destroy(id)
+    await cloudinary.uploader.destroy(publicId)
   } catch (err) {
     return null
   }

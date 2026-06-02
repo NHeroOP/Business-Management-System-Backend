@@ -1,7 +1,9 @@
 import cors from "cors";
+import helmet from "helmet";
 import express from "express";
 import cookieParser from "cookie-parser";
 import passport from "./shared/config/passport.js";
+import { errorHandler } from "./shared/middlewares/errorHandler.js";
 
 
 export const app = express();
@@ -46,8 +48,7 @@ import paymentRouter from "./modules/payment/payment.route.js";
 import productRouter from "./modules/product/product.route.js";
 import businessRouter from "./modules/business/business.route.js";
 import businessMemberRouter from "./modules/business-member/businessMember.route.js";
-import helmet from "helmet";
-import { errorHandler } from "./shared/middlewares/errorHandler.js";
+
 
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/users", userRouter);
