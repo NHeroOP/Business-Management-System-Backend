@@ -1,4 +1,6 @@
 import { Router } from "express";
+import passport from "passport";
+
 import {
   forgotPassword,
   getCurrentUser,
@@ -12,17 +14,19 @@ import {
 
 import { upload } from "@/shared/middlewares/multer.middleware.js";
 import { verifyJWT } from "@/shared/middlewares/auth.middleware.js";
-import passport from "passport";
+import { forgotPasswordLimiter, resetPasswordLimiter, loginLimiter } from "@/shared/middlewares/rateLimit.middleware.js";
 
 const router = Router();
 
 router.route("/register").post(upload.single("avatarUrl"), registerUser);
-router.route("/login").post(loginUser);
+router.route("/login").post(loginLimiter, loginUser);
 router.route("/logout").post(verifyJWT, logoutUser);
 router.route("/refresh-token").post(refreshAccessToken);
 
-router.route("/forgot-password").post(forgotPassword);
-router.route("/reset-password").post(resetPassword);
+router.route("/forgot-password")
+  .post(forgotPasswordLimiter, forgotPassword);
+router.route("/reset-password")
+  .post(resetPasswordLimiter,resetPassword);
 
 router.route("/me").get(verifyJWT, getCurrentUser);
 
