@@ -13,9 +13,11 @@ app.use(
   }),
 );
 
-app.use(helmet({
-  strictTransportSecurity: process.env.NODE_ENV === 'production'
-}))
+app.use(
+  helmet({
+    strictTransportSecurity: process.env.NODE_ENV === 'production'
+  })
+)
 
 app.use(
   express.json({
