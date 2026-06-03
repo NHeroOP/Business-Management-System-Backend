@@ -1,7 +1,7 @@
 import { ApiError } from "@/shared/utils/ApiError.js"
 import { startSession, Types } from "mongoose"
 import { Payment, type IPaymentDocument } from "./Payment.model.js"
-import { INVOICE_STATUS, PAYMENT_STATUS, type PaymentMethod, type PaymentStatus } from "@/consts.js"
+import { INVOICE_STATUS, PAYMENT_STATUS } from "@/consts.js"
 import { Invoice } from "../invoice/Invoice.model.js"
 import type { CreatePaymentInput, FindPaymentsInput, PaymentIdParam } from "./payment.validation.js"
 

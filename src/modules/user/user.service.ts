@@ -27,7 +27,7 @@ export const getUserProfile = async (
     throw new ApiError(400, "User ID is required");
   }
 
-  const user = await User.findById(userId).select(
+  const user = await User.findOne({ _id: userId, isArchived: false }).select(
     "-password -refreshToken -passwordResetToken -passwordResetTokenExpiry -googleId"
   );
 
@@ -51,9 +51,11 @@ export const updateUserProfile = async (
   }
 
   const user = await User
-    .findByIdAndUpdate(userId, {
-      $set: { name }
-    }, { returnDocument: "after" })
+    .findOneAndUpdate(
+      { _id: userId, isArchived: false },
+      { $set: { name } },
+      { returnDocument: "after" }
+    )
     .select("-password -refreshToken -passwordResetToken -passwordResetTokenExpiry -googleId");
   
   if (!user) {
@@ -108,14 +110,18 @@ export const updateUserAvatar = async (
   }
 
   const user = await User
-    .findByIdAndUpdate(userId, {
-      $set: {
-        avatar: {
-          url: avatar.secure_url,
-          publicId: avatar.public_id,
+    .findOneAndUpdate(
+      { _id: userId, isArchived: false },
+      {
+        $set: {
+          avatar: {
+            url: avatar.secure_url,
+            publicId: avatar.public_id,
+          }
         }
-      }
-    })
+      },
+      { returnDocument: "after" }
+    )
     .select("-password -refreshToken -passwordResetToken -passwordResetTokenExpiry -googleId");
   
   await removeOnCloudinary(user?.avatar?.publicId!);
@@ -133,7 +139,7 @@ export const findUserById = async (
     throw new ApiError(400, "User ID is required");
   }
 
-  const user = await User.findById(userId).select(
+  const user = await User.findOne({ _id: userId, isArchived: false }).select(
     "-password -refreshToken -passwordResetToken -passwordResetTokenExpiry -googleId"
   );
 
