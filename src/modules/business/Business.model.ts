@@ -22,7 +22,6 @@ export interface IBusiness {
     enableTaxes: boolean;
     taxPercentage: number;
   };
-  plan: "free" | "pro";
   isArchived: boolean;
   metadata?: Record<string, unknown>;
 }
@@ -92,12 +91,6 @@ const businessSchema = new Schema<IBusiness>(
         type: Number,
         default: 18,
       },
-    },
-
-    plan: {
-      type: String,
-      enum: ["free", "pro"],
-      default: "free",
     },
 
     isArchived: {

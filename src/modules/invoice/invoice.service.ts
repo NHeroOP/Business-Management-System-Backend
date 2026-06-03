@@ -14,6 +14,7 @@ import { allowedSortFields } from "./invoice.const.js";
 import { type InvoiceStatus } from "@/consts.js";
 import resend from "@/shared/config/resend.js";
 import type { CreateInvoiceInput, FindInvoicesInput, InvoiceIdParam, UpdateInvoiceInput } from "./invoice.validation.js";
+import { Business } from "../business/Business.model.js";
 
 
 interface InvoiceItemInput {
@@ -83,6 +84,13 @@ export const createInvoice = async (
     throw new ApiError(400, "clientId is required");
   }
 
+
+  const business = await Business.findById(businessId);
+
+  if (!business) {
+    throw new ApiError(404, "Business not found");
+  }
+
   const clientExist = await Client.exists({
     _id: clientId,
     businessId,
@@ -144,6 +152,7 @@ export const createInvoice = async (
 
   let invoice: IInvoiceDocument | undefined;
 
+
   const session = await startSession();
   session.startTransaction();
 
@@ -168,7 +177,7 @@ export const createInvoice = async (
       throw new ApiError(500, "Failed to generate invoice number");
     }
 
-    const invoiceNumber = `INV-${year}-${String(counter.sequence).padStart(4, "0")}`;
+    const invoiceNumber = `${business.settings.invoicePrefix ?? "INV"}-${year}-${String(counter.sequence).padStart(4, "0")}`;
 
     [invoice] = await Invoice.create(
       [
