@@ -80,6 +80,7 @@ export const loginUserService = async (
   }
 
   const user = await User.findOne({
+    isArchived: false,
     $or: [
       { username: identifier.toLowerCase() },
       { email: identifier.toLowerCase() },
@@ -116,8 +117,8 @@ export const loginUserService = async (
 };
 
 export const logoutUserService = async (userId: Types.ObjectId) => {
-  const user = await User.findByIdAndUpdate(
-    userId,
+  const user = await User.findOneAndUpdate(
+    { _id: userId, isArchived: false },
     {
       $unset: { refreshToken: 1 },
     },
@@ -149,7 +150,7 @@ export const refreshAccessTokenService = async ({
     throw new ApiError(401, "Invalid refresh token");
   }
 
-  const user = await User.findById(decodedToken?._id);
+  const user = await User.findOne({ _id: decodedToken?._id, isArchived: false });
 
   if (!user) {
     throw new ApiError(
@@ -176,7 +177,7 @@ export const forgotPasswordService = async (email: string) => {
     throw new ApiError(400, "Email is required");
   }
 
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email, isArchived: false });
 
   if (!user) {
     throw new ApiError(404, "User not found");
@@ -230,7 +231,8 @@ export const resetPasswordService = async (
 
   const user = await User.findOne({
     _id: userId,
-    passwordResetToken: hashedToken
+    passwordResetToken: hashedToken,
+    isArchived: false
   })
 
   if (!user) {
@@ -249,7 +251,7 @@ export const resetPasswordService = async (
 };
 
 export const getCurrentUserService = async (userId: Types.ObjectId) => { 
-  const user = await User.findById(userId).select("-password -refreshToken");
+  const user = await User.findOne({ _id: userId, isArchived: false }).select("-password -refreshToken");
 
   if (!user) {
     throw new ApiError(404, "User not found");
