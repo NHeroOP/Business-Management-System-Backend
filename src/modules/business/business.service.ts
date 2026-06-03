@@ -8,6 +8,7 @@ import {
   type IBusinessDocument,
 } from "./Business.model.js";
 import type {
+  BusinessIdParam,
   CreateBusinessInput,
   UpdateBusinessDetailsInput,
   UpdateBusinessLogoInput
@@ -26,14 +27,10 @@ type CreateBusinessPayload =
   };
 
 type UpdateBusinessDetailsPayload =
-  UpdateBusinessDetailsInput & {
-    businessId: Types.ObjectId | string;
-  };
+  UpdateBusinessDetailsInput & BusinessIdParam;
 
 type UpdateBusinessLogoPayload =
-  UpdateBusinessLogoInput & {
-    businessId: Types.ObjectId | string;
-  };
+  UpdateBusinessLogoInput & BusinessIdParam;
 
 export const createBusiness = async ({
   createdBy,
