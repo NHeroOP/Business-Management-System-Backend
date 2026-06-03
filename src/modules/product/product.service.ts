@@ -1,4 +1,4 @@
-import { uploadOnCloudinary } from "@/shared/config/cloudinary.js";
+import { removeOnCloudinary, uploadOnCloudinary } from "@/shared/config/cloudinary.js";
 import { Product, type IProductDocument } from "./Product.model.js";
 
 import { ApiError } from "@/shared/utils/ApiError.js";
@@ -20,6 +20,10 @@ type ProductContext = ProductIdParam & {
 }
 
 type UpdateProductPayload = UpdateProductInput & ProductContext;
+
+type UpdateProductImagePayload = ProductContext & {
+  imageUrl: string;
+}
 
 
 export const createProduct = async (
@@ -144,6 +148,33 @@ export const updateProduct = async (
 
   if (!product) {
     throw new ApiError(404, "Product not found");
+  }
+};
+
+export const updateProductImage = async ({
+  businessId,
+  productId,
+  imageUrl,
+}: UpdateProductImagePayload): Promise<void> => {
+  if (!productId || !imageUrl) {
+    throw new ApiError(400, "Product ID, and Image URL are required");
+  }
+
+  const uploadedImage = await uploadOnCloudinary(imageUrl);
+  const image = {
+    url: uploadedImage?.secure_url,
+    publicId: uploadedImage?.public_id,
+  };
+
+  const product = await Product.findOneAndUpdate(
+    { _id: productId, businessId: businessId, isArchived: false },
+    { image },
+  ).select("-isArchived -metadata");
+  
+  await removeOnCloudinary(product?.image?.publicId);
+
+  if (!product) {
+    throw new ApiError(404, "Product not found or failed to update");
   }
 };
 

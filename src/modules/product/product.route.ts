@@ -5,7 +5,8 @@ import {
   getProducts,
   getProductById,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  updateProductImage
  } from "./product.controller.js";
 
 import { verifyJWT } from "@/shared/middlewares/auth.middleware.js";
@@ -30,5 +31,8 @@ router.route("/:productId")
   .get(getProductById)
   .patch(updateProduct)
   .delete(deleteProduct);
+
+router.route("/:productId/image")
+  .patch(upload.single("imageUrl"), updateProductImage);
 
 export default router;

@@ -5,6 +5,7 @@ import {
   findProducts,
   findProductById,
   updateProduct as updateProductService,
+  updateProductImage as updateProductImageService,
   archiveProduct
 } from "./product.service.js";
 import {
@@ -76,6 +77,19 @@ export const updateProduct = asyncHandler(async (req: Request, res: Response) =>
 
   return res.status(200).json(
     new ApiResponse(200, {}, "Product updated successfully")
+  );
+});
+
+export const updateProductImage = asyncHandler(async (req: Request, res: Response) => {
+  const { productId } = productIdParamSchema.parse(req.params);
+  await updateProductImageService({
+    businessId: req.workspace!.businessId,
+    productId,
+    imageUrl: req.file!.path
+  });
+
+  return res.status(200).json(
+    new ApiResponse(200, {}, "Product image updated successfully")
   );
 });
 
