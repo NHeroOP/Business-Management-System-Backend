@@ -100,9 +100,10 @@ export const findBusinessById = async (
     throw new ApiError(400, "Business ID is required");
   }
 
-  const business = await Business.findById(businessId).select(
-    "-isArchived -metadata",
-  );
+  const business = await Business.findOne({
+    _id: businessId,
+    isArchived: false
+  }).select("-isArchived -metadata");
 
   if (!business) {
     throw new ApiError(404, "Business not found");
@@ -122,7 +123,7 @@ export const updateBusinessDetails = async ({
   }
 
   const business = await Business.findOneAndUpdate(
-    { _id: businessId },
+    { _id: businessId, isArchived: false },
     {
       ...(name && { name }),
       ...(email && { email }),
@@ -156,7 +157,7 @@ export const updateBusinessLogo = async ({
   };
 
   const business = await Business.findOneAndUpdate(
-    { _id: businessId },
+    { _id: businessId, isArchived: false },
     { logo },
   ).select("-isArchived -metadata");
   

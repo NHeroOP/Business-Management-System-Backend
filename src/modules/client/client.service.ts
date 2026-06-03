@@ -24,15 +24,15 @@ export const createClient = async (
 ): Promise<IClientDocument> => {
   const { businessId, name, email, phone, address, companyName, gstNumber, notes, tags, createdBy } = payload;
 
-  if (!name || tags.length < 1) {
-    throw new ApiError(400, "Name and at least one tag are required to create a client");
+  if (!name || name.trim() === "") {
+    throw new ApiError(400, "Name is required to create a client");
   }
 
   const client = await Client.create({
     businessId,
     createdBy,
     name,
-    tags,
+    ...(tags && { tags }),
     ...(email && { email }),
     ...(phone && { phone }),
     ...(address && { address }),
@@ -80,7 +80,7 @@ export const findClients = async (
 export const findClientById = async (
   clientId: ClientIdInput["clientId"]
 ): Promise<IClientDocument> => {
-  const client = await Client.findById(clientId).select("-metadata");
+  const client = await Client.findOne({ _id: clientId, isArchived: false }).select("-metadata");
 
   if (!client) {
     throw new ApiError(404, "Client not found");

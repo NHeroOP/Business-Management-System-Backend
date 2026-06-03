@@ -85,7 +85,7 @@ export const createInvoice = async (
   }
 
 
-  const business = await Business.findById(businessId);
+  const business = await Business.findOne({ _id: businessId, isArchived: false }).select("settings");
 
   if (!business) {
     throw new ApiError(404, "Business not found");

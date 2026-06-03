@@ -40,6 +40,7 @@ export const addBusinessMember = async (
   const existingMember = await BusinessMember.findOne({
     businessId,
     userId,
+    isArchived: false
   });
 
   if (existingMember) {
