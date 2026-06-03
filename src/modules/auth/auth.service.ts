@@ -68,10 +68,10 @@ export const registerUserService = async (
 };
 
 export const loginUserService = async (
-  { username, email, password }: LoginInput
+  { identifier, password }: LoginInput
 ) => { 
 
-  if (!username && !email) {
+  if (!identifier) {
     throw new ApiError(400, "Username or email is required");
   }
 
@@ -79,11 +79,12 @@ export const loginUserService = async (
     throw new ApiError(400, "Password is required");
   }
 
-  const user = await User.findOne(
-    username
-      ? { username }
-      : { email: email! },
-  );
+  const user = await User.findOne({
+    $or: [
+      { username: identifier.toLowerCase() },
+      { email: identifier.toLowerCase() },
+    ]
+  });
 
   if (!user) {
     throw new ApiError(404, "User not found");

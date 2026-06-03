@@ -36,10 +36,9 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
-  const { username, email, password } = loginSchema.parse(req.body)
+  const { identifier, password } = loginSchema.parse(req.body)
   const { userData, accessToken, refreshToken } = await loginUserService({
-    username,
-    email,
+    identifier,
     password,
   });
 
