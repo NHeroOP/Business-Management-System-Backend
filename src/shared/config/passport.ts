@@ -34,6 +34,7 @@ passport.use(
             name: profile.displayName,
             email,
             googleId: profile.id,
+            provider: "google",
             avatar: {
               url: profile.photos?.[0]?.value || "",
               publicId: `google_${profile.id}`,
