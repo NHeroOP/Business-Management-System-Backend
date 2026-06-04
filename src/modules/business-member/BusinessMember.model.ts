@@ -49,6 +49,11 @@ const businessMemberSchema = new Schema<IBusinessMember>(
   }
 );
 
+businessMemberSchema.index({
+  businessId: 1, 
+  userId: 1,
+}, { unique: true })
+
 export const BusinessMember = model<IBusinessMember>(
   "BusinessMember",
   businessMemberSchema

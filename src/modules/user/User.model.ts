@@ -110,6 +110,10 @@ const userSchema = new Schema<IUser>(
   { timestamps: true },
 );
 
+userSchema.index({
+  passwordResetToken: 1,
+});
+
 userSchema.pre("save", async function (): Promise<void> {
   if (!this.isModified("password")) return;
 

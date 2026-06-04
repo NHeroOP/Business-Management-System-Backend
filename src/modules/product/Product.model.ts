@@ -97,7 +97,6 @@ const productSchema = new Schema<IProduct>(
 );
 
 productSchema.index({
-  name: "text",
   businessId: 1,
   createdAt: -1,
 });

@@ -171,9 +171,19 @@ const invoiceSchema = new Schema<IInvoice>(
 );
 
 invoiceSchema.index({
-  invoiceNumber: "text",
   businessId: 1,
-  clientId: 1,
+  invoiceNumber: 1,
+}, { unique: true });
+
+invoiceSchema.index({
+  businessId: 1,
+  status: 1,
+  createdAt: -1,
+});
+
+invoiceSchema.index({
+  businessId: 1,
+  client: 1,
   createdAt: -1,
 });
 
