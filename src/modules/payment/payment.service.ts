@@ -70,7 +70,8 @@ export const createPayment = async (
       ...(notes && { notes }),
       ...(paidAt && { paidAt }),
     }], { session });
-
+    
+    await session.commitTransaction();
   } catch (error: any) {
     await session.abortTransaction();
     throw error instanceof ApiError

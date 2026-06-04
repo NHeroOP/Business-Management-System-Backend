@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import slugify from "slugify";
-import type { Types } from "mongoose";
+import { startSession, type Types } from "mongoose";
 
 import {
   Business,
@@ -65,31 +65,51 @@ export const createBusiness = async ({
     publicId: uploadedLogo?.public_id,
   };
 
-  const newBusiness = await Business.create({
-    name,
-    slug,
-    createdBy,
-    ...(logo && { logo }),
-    ...(email && { email }),
-    ...(phone && { phone }),
-    ...(address && { address }),
-    ...(website && { website }),
-    ...(description && { description }),
-  });
 
-  if (!newBusiness) {
-    throw new ApiError(500, "Failed to create business");
+  const session = await startSession();
+  session.startTransaction();
+
+  let newBusiness: IBusinessDocument | undefined;
+  
+  try {
+    
+    [newBusiness] = await Business.create([{
+      name,
+      slug,
+      createdBy,
+      ...(logo && { logo }),
+      ...(email && { email }),
+      ...(phone && { phone }),
+      ...(address && { address }),
+      ...(website && { website }),
+      ...(description && { description }),
+    }], { session });
+
+    if (!newBusiness) {
+      throw new ApiError(500, "Failed to create business");
+    }
+  
+    await BusinessMember.create([{
+      businessId: newBusiness._id,
+      userId: createdBy,
+      role: BUSINESS_ROLE.OWNER,
+    }], { session });
+
+    await session.commitTransaction();
+  } catch (error: any) {
+    await session.abortTransaction();
+    throw error instanceof ApiError
+      ? error
+      : new ApiError(
+          500,
+          error.message || "Failed to create invoice",
+          [],
+          error instanceof Error ? error.stack : undefined,
+        );
+  } finally {
+    await session.endSession();
   }
-
-  const member = await BusinessMember.create({
-    businessId: newBusiness._id,
-    userId: createdBy,
-    role: BUSINESS_ROLE.OWNER,
-  });
-
-  if (!member) {
-    throw new ApiError(500, "Failed to create business member");
-  }
+  
 
   return newBusiness;
 };
