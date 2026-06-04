@@ -18,7 +18,7 @@ export const resolveWorkspace = asyncHandler(
       throw new ApiError(400, "Business ID is required");
     }
 
-    if (isValidObjectId(businessId)) {
+    if (!isValidObjectId(businessId)) {
       throw new ApiError(400, "Invalid Business ID format");
     }
 
