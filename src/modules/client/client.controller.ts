@@ -51,7 +51,10 @@ export const getClients = asyncHandler(async (req: Request, res: Response) => {
 export const getClientById = asyncHandler(async (req: Request, res: Response) => { 
   const { clientId } = clientIdSchema.parse(req.params);
 
-  const client = await findClientById(clientId);
+  const client = await findClientById({
+    businessId: req.workspace!.businessId,
+    clientId
+  });
 
   return res.status(200).json(
     new ApiResponse(200, client, "Client retrieved successfully")
@@ -76,7 +79,10 @@ export const updateClient = asyncHandler(async (req: Request, res: Response) => 
 export const deleteClient = asyncHandler(async (req: Request, res: Response) => { 
   const { clientId } = clientIdSchema.parse(req.params);
 
-  await archiveClient(clientId);
+  await archiveClient({
+    businessId: req.workspace!.businessId,
+    clientId
+  });
 
   return res.status(200).json(
     new ApiResponse(200, {}, "Client archived successfully")

@@ -24,9 +24,7 @@ export const loginSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 
-export const refreshTokenSchema = z.object({
-  incomingRefreshToken: z.jwt("Invalid refresh token"),
-});
+export const refreshTokenSchema = z.jwt("Invalid refresh token")
 
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 

@@ -122,7 +122,11 @@ export const findProducts = async (
 export const findProductById = async (
   { businessId, productId }: ProductContext
 ): Promise<IProductDocument> => {
-  const product = await Product.findOne({ _id: productId, businessId }).select("-metadata");
+  const product = await Product.findOne({
+    _id: productId,
+    businessId,
+    isArchived: false,
+  }).select("-metadata");
 
   if (!product) {
     throw new ApiError(404, "Product not found");

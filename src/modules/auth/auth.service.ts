@@ -132,9 +132,9 @@ export const logoutUserService = async (userId: Types.ObjectId) => {
   return user;
 }
 
-export const refreshAccessTokenService = async ({
-  incomingRefreshToken,
-}: RefreshTokenInput) => {
+export const refreshAccessTokenService = async (
+  incomingRefreshToken : RefreshTokenInput
+) => {
   if (!incomingRefreshToken) {
     throw new ApiError(401, "Refresh token is missing");
   }

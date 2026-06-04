@@ -15,9 +15,11 @@ type FindClientsPayload = FindClientsInput & {
   businessId: Types.ObjectId;
 }
 
-type UpdateClientPayload = ClientIdInput & UpdateClientInput & {
+type ClientContext  = ClientIdInput & {
   businessId: Types.ObjectId;
 }
+
+type UpdateClientPayload = UpdateClientInput & ClientContext;
 
 export const createClient = async (
   payload: CreateClientPayload
@@ -78,9 +80,13 @@ export const findClients = async (
 }
 
 export const findClientById = async (
-  clientId: ClientIdInput["clientId"]
+ { businessId, clientId }: ClientContext
 ): Promise<IClientDocument> => {
-  const client = await Client.findOne({ _id: clientId, isArchived: false }).select("-metadata");
+  const client = await Client.findOne({
+    _id: clientId,
+    businessId,
+    isArchived: false
+  }).select("-metadata");
 
   if (!client) {
     throw new ApiError(404, "Client not found");
@@ -112,7 +118,7 @@ export const updateClient = async (
 };
 
 export const archiveClient = async (
-  clientId: ClientIdInput["clientId"]
+  { businessId, clientId }: ClientContext
 ): Promise<void> => { 
   if (!clientId) {
     throw new ApiError(400, "Client ID is required");
@@ -120,6 +126,7 @@ export const archiveClient = async (
 
   const client = await Client.findOne({
     _id: clientId,
+    businessId,
     isArchived: false,
   });
 

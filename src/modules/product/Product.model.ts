@@ -70,12 +70,7 @@ const productSchema = new Schema<IProduct>(
       default: 0,
     },
 
-    sku: {
-      type: String,
-      sparse: true,
-      unique: true,
-    },
-
+    sku: String,
     category: String,
 
     image: imageSchema,
@@ -106,6 +101,11 @@ productSchema.index({
   businessId: 1,
   createdAt: -1,
 });
+
+productSchema.index(
+  { sku: 1, businessId: 1 },
+  { unique: true, sparse: true },
+);
 
 productSchema.plugin(mongooseAggregatePaginate);
 

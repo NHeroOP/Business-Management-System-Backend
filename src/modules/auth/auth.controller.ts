@@ -72,13 +72,13 @@ export const logoutUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
-  const { incomingRefreshToken } = refreshTokenSchema.parse(
+  const incomingRefreshToken = refreshTokenSchema.parse(
     req.cookies.refreshToken || req.body.refreshToken
   );
 
-  const { accessToken, refreshToken } = await refreshAccessTokenService({
-    incomingRefreshToken,
-  });
+  const { accessToken, refreshToken } = await refreshAccessTokenService(
+    incomingRefreshToken
+  );
 
   return res
     .status(200)

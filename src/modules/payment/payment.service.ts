@@ -27,21 +27,22 @@ export const createPayment = async (
     throw new ApiError(400, "Invoice ID, amount and createdBy are required");
   }
 
-
-  const existingPayment = await Payment.exists({
-    invoiceId,
-    status: PAYMENT_STATUS.SUCCESS,
-  });
-
-  if (existingPayment) {
-    throw new ApiError(400, "Invoice has already been paid");
-  }
   let payment: IPaymentDocument | undefined;
 
   const session = await startSession();
   session.startTransaction();
 
   try {
+    const existingPayment = await Payment.exists({
+      invoiceId,
+      isArchived: false,
+      businessId,
+      status: PAYMENT_STATUS.SUCCESS,
+    }).session(session);
+
+    if (existingPayment) {
+      throw new ApiError(400, "Invoice has already been paid");
+    }
 
     if ((status && status === PAYMENT_STATUS.SUCCESS) || status === undefined) {
       const invoice = await Invoice.findOne(
@@ -52,7 +53,7 @@ export const createPayment = async (
         throw new ApiError(404, "Invoice not found");
       }
 
-      if (amount >= invoice.total) {
+      if (amount === invoice.total) {
         invoice.status = INVOICE_STATUS.PAID;
         await invoice.save({ session });
       }
