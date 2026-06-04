@@ -4,8 +4,8 @@ import * as z from "zod";
 export const createPaymentSchema = z.object({
   invoiceId: z.string().length(24, "Invalid invoice ID"),
   amount: z.number().positive(),
-  method: z.enum(Object.values(PAYMENT_METHOD)),
-  status: z.enum(Object.values(PAYMENT_STATUS)),
+  method: z.enum(Object.values(PAYMENT_METHOD)).optional(),
+  status: z.enum(Object.values(PAYMENT_STATUS)).optional(),
   transactionId: z.string().optional(),
   paidAt: z.date().optional(),
   notes: z.string().optional(),
