@@ -7,8 +7,8 @@ import { startSession, Types } from "mongoose";
 import { Client } from "../client/Client.model.js";
 import { Product } from "../product/Product.model.js";
 import { Business } from "../business/Business.model.js";
-import { Invoice, type IInvoiceDocument, type IInvoiceItem } from "./Invoice.model.js";
 import { InvoiceCounter } from "../invoiceCounter/InvoiceCounter.model.js";
+import { Invoice, type IInvoiceDocument, type IInvoiceItem } from "./Invoice.model.js";
 import type {
   CreateInvoiceInput,
   FindInvoicesInput,
@@ -56,6 +56,10 @@ type calculateInvoiceTotalsParams = {
   discount?: number;
   tax?: number;
 }
+
+
+const escapeRegex = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export const calculateInvoiceTotals = (
   { items, discount = 0, tax = 0, }: calculateInvoiceTotalsParams
@@ -253,8 +257,8 @@ export const findInvoices = async (payload: FindInvoicesPayload) => {
     },
     {
       $match: {
-        ...(email && { "client.email": { $regex: email, $options: "i" } }),
-        ...(name && { "client.name": { $regex: name, $options: "i" } }),
+        ...(email && { "client.email": { $regex: escapeRegex(email), $options: "i" } }),
+        ...(name && { "client.name": { $regex: escapeRegex(name), $options: "i" } }),
       },
     },
     {
