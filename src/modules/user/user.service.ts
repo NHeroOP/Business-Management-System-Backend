@@ -120,7 +120,6 @@ export const updateUserAvatar = async (
           }
         }
       },
-      { returnDocument: "after" }
     )
     .select("-password -refreshToken -passwordResetToken -passwordResetTokenExpiry -googleId");
   

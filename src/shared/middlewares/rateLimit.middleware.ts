@@ -42,7 +42,7 @@ export const loginLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: (req) => {
     const ip = ipKeyGenerator(req.ip ?? '')
-    const identifier = req.body?.email ?? req.body?.username ?? 'unknown'
+    const identifier = req.body?.identifier ?? 'unknown'
     return `${ip}-${identifier}`
   },
   skipSuccessfulRequests: true,

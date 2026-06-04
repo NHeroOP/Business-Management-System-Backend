@@ -1,6 +1,8 @@
+import ENV from "@/env.js";
+
 export const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
+  secure: ENV.NODE_ENV === "production",
   sameSite: "strict" as const,
 };
 

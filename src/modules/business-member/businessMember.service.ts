@@ -1,26 +1,20 @@
 import { Types } from "mongoose";
 
+import { Business } from "../business/Business.model.js";
+import type { UserIdParam, UpdateMemberInput } from "./businessMember.validation.js";
 import { BusinessMember, type IBusinessMemberDocument } from "./BusinessMember.model.js";
 
 import type { BusinessRole } from "@/consts.js";
 import { ApiError } from "@/shared/utils/ApiError.js";
-import type { UpdateMemberInput } from "./businessMember.validation.js";
 
-interface WorkspaceContext {
+type WorkspaceContext = UserIdParam & {
   currUserRole: string;
   businessId: Types.ObjectId | string;
-  userId: Types.ObjectId | string | undefined;
 }
 
-interface AddMemberParams
-  extends WorkspaceContext {
+type AddMemberParams = WorkspaceContext & {   
   role: BusinessRole;
   // permissions?: string[];
-}
-
-interface ChangeMemberRoleParams
-  extends WorkspaceContext {
-  role: UpdateMemberInput;
 }
 
 export const addBusinessMember = async (
@@ -109,9 +103,25 @@ export const removeBusinessMember = async (
     throw new ApiError(400, "Business ID and User ID are required");
   }
 
-  const targetMembership = await BusinessMember.findOne({ businessId, userId });
+  const [business, targetMembership] = await Promise.all([
+    Business.findOne({ _id: businessId, isArchived: false }),
+    BusinessMember.findOne({ businessId, userId })
+  ]);
+
+  if (!business) {
+    throw new ApiError(404, "Business not found");
+  }
+
   if (!targetMembership) {
     throw new ApiError(404, "Target member not found in this business");
+  }
+
+  if (business.createdBy.toString() === userId) {
+    throw new ApiError(403, "Business owners cannot be removed from the business");
+  }
+
+  if (targetMembership?.userId.toString() === userId) {
+    throw new ApiError(403, "Users cannot remove themselves from the business");
   }
 
   if (currUserRole === "ADMIN" && targetMembership?.role === "OWNER") {

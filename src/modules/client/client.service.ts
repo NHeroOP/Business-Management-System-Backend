@@ -1,7 +1,12 @@
 import { Types, type AggregatePaginateResult } from "mongoose";
 
 import { Client, type IClientDocument } from "./Client.model.js";
-import type { ClientIdInput, CreateClientInput, FindClientsInput, UpdateClientInput } from "./client.validation.js";
+import type {
+  ClientIdInput,
+  CreateClientInput,
+  FindClientsInput,
+  UpdateClientInput
+} from "./client.validation.js";
 
 import { ApiError } from "@/shared/utils/ApiError.js";
 
@@ -70,11 +75,6 @@ export const findClients = async (
   ])
 
   const clients = await Client.aggregatePaginate(clientAggregate, { page, limit })
-
-
-  if (!clients || clients.docs.length === 0) {
-    throw new ApiError(404, "No clients found for this business");
-  }
 
   return clients;
 }

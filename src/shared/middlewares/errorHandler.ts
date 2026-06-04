@@ -1,7 +1,8 @@
-import type { ErrorRequestHandler } from "express";
 import { ZodError } from "zod";
+import type { ErrorRequestHandler } from "express";
 
 import { ApiError } from "../utils/ApiError.js";
+import ENV from "@/env.js";
 
 export const errorHandler: ErrorRequestHandler = (
   error,
@@ -26,7 +27,7 @@ export const errorHandler: ErrorRequestHandler = (
       success: false,
       message: error.message,
       errors: error.errors,
-      ...(process.env.NODE_ENV === "development" && {
+      ...(ENV.NODE_ENV === "development" && {
         stack: error.stack,
       }),
     });
@@ -35,7 +36,7 @@ export const errorHandler: ErrorRequestHandler = (
   return res.status(500).json({
     success: false,
     message: "Internal Server Error",
-    ...(process.env.NODE_ENV === "development" && {
+    ...(ENV.NODE_ENV === "development" && {
       stack: error instanceof Error ? error.stack : undefined,
     }),
   });

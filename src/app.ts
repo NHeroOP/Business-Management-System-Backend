@@ -2,6 +2,8 @@ import cors from "cors";
 import helmet from "helmet";
 import express from "express";
 import cookieParser from "cookie-parser";
+
+import ENV from "./env.js";
 import passport from "./shared/config/passport.js";
 import { errorHandler } from "./shared/middlewares/errorHandler.js";
 import { globalLimiter } from "./shared/middlewares/rateLimit.middleware.js";
@@ -11,14 +13,14 @@ export const app = express();
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN,
+    origin: ENV.CORS_ORIGIN,
     credentials: true,
   }),
 );
 
 app.use(
   helmet({
-    strictTransportSecurity: process.env.NODE_ENV === 'production'
+    strictTransportSecurity: ENV.NODE_ENV === 'production'
   })
 )
 
@@ -40,6 +42,7 @@ app.use(express.static("public"));
 app.use(cookieParser());
 
 app.use(passport.initialize());
+
 
 import userRouter from "./modules/user/user.route.js";
 import authRouter from "./modules/auth/auth.route.js";

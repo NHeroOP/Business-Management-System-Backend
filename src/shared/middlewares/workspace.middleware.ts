@@ -4,6 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 import { BusinessMember } from "@/modules/business-member/BusinessMember.model.js";
+import { isValidObjectId } from "mongoose";
 
 export const resolveWorkspace = asyncHandler(
   async (req: Request, _: Response, next: NextFunction) => {
@@ -15,6 +16,10 @@ export const resolveWorkspace = asyncHandler(
 
     if (!businessId) {
       throw new ApiError(400, "Business ID is required");
+    }
+
+    if (isValidObjectId(businessId)) {
+      throw new ApiError(400, "Invalid Business ID format");
     }
 
     const member = await BusinessMember

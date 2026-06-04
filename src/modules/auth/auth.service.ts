@@ -5,8 +5,14 @@ import jwt, { type JwtPayload } from "jsonwebtoken";
 import { User } from "../user/User.model.js";
 import { generateTokens, hashData } from "./auth.util.js";
 import { PASSWORD_RESET_EMAIL_TEMPLATE_ID } from "./auth.const.js";
-import type { RegisterPayload, LoginInput, RefreshTokenInput, ResetPasswordInput } from './auth.validation.js';
+import type {
+  RegisterPayload,
+  LoginInput,
+  RefreshTokenInput,
+  ResetPasswordInput
+} from './auth.validation.js';
 
+import ENV from '@/env.js';
 import resend from "@/shared/config/resend.js";
 import { ApiError } from "@/shared/utils/ApiError.js";
 import { uploadOnCloudinary } from "@/shared/config/cloudinary.js";
@@ -144,7 +150,7 @@ export const refreshAccessTokenService = async (
   try {
     decodedToken = jwt.verify(
       incomingRefreshToken,
-      process.env.REFRESH_TOKEN_SECRET!,
+      ENV.REFRESH_TOKEN_SECRET!,
     ) as JwtPayload;
   } catch {
     throw new ApiError(401, "Invalid refresh token");
@@ -191,7 +197,7 @@ export const forgotPasswordService = async (email: string) => {
 
   await user.save({ validateBeforeSave: false });
 
-  const rootUrl = process.env.NODE_ENV === "production" ? process.env.BASE_URL : "http://localhost:3000";
+  const rootUrl = ENV.NODE_ENV === "production" ? ENV.BASE_URL : "http://localhost:3000";
   const resetLink = `${rootUrl}/reset-password?token=${rawPasswordResetToken}&userId=${user._id}`;
 
 

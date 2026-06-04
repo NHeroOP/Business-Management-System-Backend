@@ -1,6 +1,5 @@
 import * as z from "zod";
-import { allowedSortFields } from "./invoice.const.js";
-import { INVOICE_STATUS } from "@/consts.js";
+import { allowedInvoiceSortFields, INVOICE_STATUS } from "@/consts.js";
 
 export const createInvoiceSchema = z.object({
   clientId: z.string().length(24, "Invalid client ID format"),
@@ -34,7 +33,7 @@ export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>;
 export const getInvoicesSchema = z.object({
   email: z.email().optional(),
   name: z.string().optional(),
-  sortBy: z.enum(allowedSortFields).optional(),
+  sortBy: z.enum(allowedInvoiceSortFields).optional(),
   sortOrder: z.union([z.literal(1), z.literal(-1)]).optional(),
   page: z.number().positive().optional(),
   limit: z.number().positive().optional(),

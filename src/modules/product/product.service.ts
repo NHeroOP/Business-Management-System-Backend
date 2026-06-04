@@ -1,9 +1,15 @@
-import { removeOnCloudinary, uploadOnCloudinary } from "@/shared/config/cloudinary.js";
+import { Types, type AggregatePaginateResult } from "mongoose";
+
 import { Product, type IProductDocument } from "./Product.model.js";
+import type {
+  CreateProductInput,
+  FindProductsQuery,
+  ProductIdParam,
+  UpdateProductInput
+} from "./product.validation.js";
 
 import { ApiError } from "@/shared/utils/ApiError.js";
-import { Types, type AggregatePaginateResult } from "mongoose";
-import type { CreateProductInput, FindProductsQuery, ProductIdParam, UpdateProductInput } from "./product.validation.js";
+import { removeOnCloudinary, uploadOnCloudinary } from "@/shared/config/cloudinary.js";
 
 type CreateProductPayload = CreateProductInput & {
   businessId: Types.ObjectId;
@@ -111,10 +117,6 @@ export const findProducts = async (
   ])
 
   const products = await Product.aggregatePaginate(productAggregate, { page, limit })
-
-  if (!products || products.docs.length === 0) {
-    throw new ApiError(404, "No products found for this business");
-  }
 
   return products;
 };

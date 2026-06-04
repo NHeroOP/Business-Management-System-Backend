@@ -6,22 +6,25 @@ import {
   findBusinessMembers,
   removeBusinessMember
 } from "./businessMember.service.js";
+import {
+  inviteMemberSchema,
+  updateMemberSchema,
+  userIdParamSchema
+} from "./businessMember.validation.js";
 
-import { asyncHandler } from "@/shared/utils/asyncHandler.js";
 import { ApiResponse } from "@/shared/utils/ApiResponse.js";
-import type { Types } from "mongoose";
-import { inviteMemberSchema, updateMemberSchema } from "./businessMember.validation.js";
+import { asyncHandler } from "@/shared/utils/asyncHandler.js";
 
 
 export const inviteMember = asyncHandler(async (req: Request, res: Response) => {
-  const { role } = inviteMemberSchema.parse(req.body);
+  const { userId, role } = inviteMemberSchema.parse(req.body);
 
   await addBusinessMember({
     role,
     // permissions: body.permissions,
     currUserRole: req.workspace!.role,
     businessId: req.workspace!.businessId,
-    userId: req.params.userId as Types.ObjectId | string,
+    userId,
   });
 
   return res.status(200).json(
@@ -38,11 +41,12 @@ export const getMembers = asyncHandler(async (req: Request, res: Response) => {
 
 export const updateMemberRole = asyncHandler(async (req: Request, res: Response) => {
   const { role } = updateMemberSchema.parse(req.body);
+  const { userId } = userIdParamSchema.parse(req.params);
   await changeMemberRole({
     role,
     currUserRole: req.workspace!.role,
     businessId: req.workspace!.businessId,
-    userId: req.params.userId as Types.ObjectId | string,
+    userId,
   });
 
   return res.status(200).json(
@@ -51,10 +55,11 @@ export const updateMemberRole = asyncHandler(async (req: Request, res: Response)
 });
 
 export const removeMember = asyncHandler(async (req: Request, res: Response) => { 
+  const { userId } = userIdParamSchema.parse(req.params);
   await removeBusinessMember({
     currUserRole: req.workspace!.role,
     businessId: req.workspace!.businessId,
-    userId: req.params.userId as string | Types.ObjectId,
+    userId,
   });
   
   return res.status(200).json(

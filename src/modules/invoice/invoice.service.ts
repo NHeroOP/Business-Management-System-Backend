@@ -1,20 +1,28 @@
-import { startSession, Types } from "mongoose";
-import Handlebars from "handlebars";
-import puppeteer from "puppeteer";
-import fs from "node:fs/promises";
 import path from "node:path";
+import Handlebars from "handlebars";
+import fs from "node:fs/promises";
+import puppeteer from "puppeteer";
+import { startSession, Types } from "mongoose";
 
 import { Client } from "../client/Client.model.js";
 import { Product } from "../product/Product.model.js";
+import { Business } from "../business/Business.model.js";
 import { Invoice, type IInvoiceDocument, type IInvoiceItem } from "./Invoice.model.js";
 import { InvoiceCounter } from "../invoiceCounter/InvoiceCounter.model.js";
+import type {
+  CreateInvoiceInput,
+  FindInvoicesInput,
+  InvoiceIdParam,
+  UpdateInvoiceInput
+} from "./invoice.validation.js";
 
-import { ApiError } from "@/shared/utils/ApiError.js";
-import { allowedSortFields } from "./invoice.const.js";
-import { INVOICE_SENT_EMAIL_TEMPLATE_ID, type InvoiceStatus } from "@/consts.js";
 import resend from "@/shared/config/resend.js";
-import type { CreateInvoiceInput, FindInvoicesInput, InvoiceIdParam, UpdateInvoiceInput } from "./invoice.validation.js";
-import { Business } from "../business/Business.model.js";
+import { ApiError } from "@/shared/utils/ApiError.js";
+import {
+  allowedInvoiceSortFields,
+  INVOICE_SENT_EMAIL_TEMPLATE_ID,
+  type InvoiceStatus
+} from "@/consts.js";
 
 
 interface InvoiceItemInput {
@@ -207,7 +215,7 @@ export const createInvoice = async (
 export const findInvoices = async (payload: FindInvoicesPayload) => {
   const { businessId, email, name, ...options } = payload;
 
-  const sortBy = allowedSortFields.includes(options.sortBy ?? "")
+  const sortBy = allowedInvoiceSortFields.includes(options.sortBy ?? "")
     ? options.sortBy!
     : "issuedDate";
   const sortOrder = options.sortOrder ?? -1;
@@ -330,15 +338,26 @@ export const updateInvoice = async (payload: UpdateInvoicePayload) => {
   let invoiceItems: IInvoiceItem[] = invoice.items;
   
   if (items && items.length > 0) { 
+    const mergedItems = Object.values(
+      items.reduce((acc, item): Record<string, InvoiceItemInput> => {
+        if (acc[item.productId.toString()]) {
+          acc[item.productId.toString()]!.quantity += item.quantity;
+        } else {
+          acc[item.productId.toString()] = { ...item };
+        }
+        return acc;
+      }, {}),
+    );
+
     const products = await Product.find({
-      _id: { $in: items.map((item) => item.productId) },
+      _id: { $in: mergedItems.map((item) => item.productId) },
       businessId,
       isArchived: false,
     })
       .select("_id name price")
       .lean();
 
-    if (products.length !== items.length) {
+    if (products.length !== mergedItems.length) {
       throw new ApiError(400, "One or more products not found");
     }
 
@@ -346,7 +365,7 @@ export const updateInvoice = async (payload: UpdateInvoicePayload) => {
       products.map((product) => [product._id.toString(), product]),
     );
 
-    invoiceItems = items.map((item) => {
+    invoiceItems = mergedItems.map((item) => {
       const product = productMap.get(item.productId.toString());
       if (!product) {
         throw new ApiError(400, `Product with id ${item.productId} not found`);
@@ -498,7 +517,7 @@ export const generateInvoicePdf = async ({
 
   const html = template(invoice);
 
-  const browser = await puppeteer.launch();
+  const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
 
   try {
     const page = await browser.newPage();

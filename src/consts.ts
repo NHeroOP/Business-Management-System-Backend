@@ -32,6 +32,14 @@ export const INVOICE_STATUS = {
 export type InvoiceStatus =
   (typeof INVOICE_STATUS)[keyof typeof INVOICE_STATUS];
 
+export const allowedInvoiceSortFields = [
+  "createdAt",
+  "issuedDate",
+  "dueDate",
+  "total",
+  "invoiceNumber",
+];
+
 
 export const PAYMENT_METHOD = {
   CASH: "CASH",

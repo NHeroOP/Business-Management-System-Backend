@@ -1,6 +1,7 @@
 import { model, Schema, type HydratedDocument } from "mongoose";
 import jwt, { type Secret, type SignOptions,  } from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import ENV from "@/env.js";
 
 export interface IUser {
   username: string;
@@ -131,9 +132,9 @@ userSchema.methods.generateAccessToken = function (): string {
       username: this.username,
       name: this.name,
     },
-    process.env.ACCESS_TOKEN_SECRET!! as Secret,
+    ENV.ACCESS_TOKEN_SECRET as Secret,
     {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY!!,
+      expiresIn: ENV.ACCESS_TOKEN_EXPIRY,
     } as SignOptions,
   );
 };
@@ -143,9 +144,9 @@ userSchema.methods.generateRefreshToken = function (): string {
     {
       _id: this._id,
     },
-    process.env.REFRESH_TOKEN_SECRET!! as Secret,
+    ENV.REFRESH_TOKEN_SECRET as Secret,
     {
-      expiresIn: process.env.REFRESH_TOKEN_EXPIRY!!,
+      expiresIn: ENV.REFRESH_TOKEN_EXPIRY,
     } as SignOptions,
   );
 };
