@@ -9,7 +9,7 @@ import {
 
 import { asyncHandler } from "@/shared/utils/asyncHandler.js";
 import { ApiResponse } from "@/shared/utils/ApiResponse.js";
-import { businessIdParamSchema, createBusinessSchema, updateBusinessDetailsSchema, updateBusinessLogoSchema } from "./business.validation.js";
+import { createBusinessSchema, updateBusinessDetailsSchema, updateBusinessLogoSchema } from "./business.validation.js";
 
 export const createBusiness = asyncHandler(async (req: Request, res: Response) => { 
   const data = createBusinessSchema.parse(req.body)
@@ -25,9 +25,7 @@ export const createBusiness = asyncHandler(async (req: Request, res: Response) =
 });
 
 export const getCurrentBusiness = asyncHandler(async (req: Request, res: Response) => {
-
-  const { businessId } = businessIdParamSchema.parse(req.params);
-  const business = await findBusinessById(businessId);
+  const business = await findBusinessById(req.workspace!.businessId);
 
   return res.status(200).json(
     new ApiResponse(200, business, "Business fetched successfully")
@@ -36,9 +34,8 @@ export const getCurrentBusiness = asyncHandler(async (req: Request, res: Respons
 
 export const updateBusiness = asyncHandler(async (req: Request, res: Response) => {
   const body = updateBusinessDetailsSchema.parse(req.body);
-  const { businessId } = businessIdParamSchema.parse(req.params)
   await updateBusinessDetails({
-    businessId,
+    businessId: req.workspace!.businessId,
     ...body
   });
 
@@ -49,9 +46,8 @@ export const updateBusiness = asyncHandler(async (req: Request, res: Response) =
 
 export const updateBusinessLogo = asyncHandler(async (req: Request, res: Response) => { 
   const body = updateBusinessLogoSchema.parse(req.body);
-  const { businessId } = businessIdParamSchema.parse(req.params)
   await updateBusinessLogoService({
-    businessId,
+    businessId: req.workspace!.businessId,
     logoUrl: req.file?.path,
     ...body
   });

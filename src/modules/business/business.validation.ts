@@ -11,12 +11,6 @@ export const createBusinessSchema = z.object({
 
 export type CreateBusinessInput = z.infer<typeof createBusinessSchema>
 
-export const businessIdParamSchema = z.object({
-  businessId: z.string().length(24, "Invalid business ID")
-});
-
-export type BusinessIdParam = z.infer<typeof businessIdParamSchema>;
-
 export const updateBusinessDetailsSchema = z.object({
   name: z.string().min(1, "Business name is required").optional(),
   email: z.email("Invalid email address").optional(),

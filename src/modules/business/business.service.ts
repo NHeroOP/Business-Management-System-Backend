@@ -4,11 +4,9 @@ import type { Types } from "mongoose";
 
 import {
   Business,
-  type IBusiness,
   type IBusinessDocument,
 } from "./Business.model.js";
 import type {
-  BusinessIdParam,
   CreateBusinessInput,
   UpdateBusinessDetailsInput,
   UpdateBusinessLogoInput
@@ -27,10 +25,14 @@ type CreateBusinessPayload =
   };
 
 type UpdateBusinessDetailsPayload =
-  UpdateBusinessDetailsInput & BusinessIdParam;
+  UpdateBusinessDetailsInput & {
+    businessId: Types.ObjectId;
+  };
 
 type UpdateBusinessLogoPayload =
-  UpdateBusinessLogoInput & BusinessIdParam;
+  UpdateBusinessLogoInput & {
+    businessId: Types.ObjectId;
+  };
 
 export const createBusiness = async ({
   createdBy,
@@ -96,9 +98,6 @@ export const createBusiness = async ({
 export const findBusinessById = async (
   businessId: Types.ObjectId | string,
 ): Promise<IBusinessDocument> => {
-  if (!businessId) {
-    throw new ApiError(400, "Business ID is required");
-  }
 
   const business = await Business.findOne({
     _id: businessId,
@@ -117,10 +116,6 @@ export const updateBusinessDetails = async ({
   ...payload
 }: UpdateBusinessDetailsPayload): Promise<IBusinessDocument> => {
   const { name, email, phone, address, website, description } = payload;
-
-  if (!businessId) {
-    throw new ApiError(400, "Business ID is required");
-  }
 
   const business = await Business.findOneAndUpdate(
     { _id: businessId, isArchived: false },
@@ -146,8 +141,8 @@ export const updateBusinessLogo = async ({
   businessId,
   logoUrl,
 }: UpdateBusinessLogoPayload): Promise<void> => {
-  if (!businessId || !logoUrl) {
-    throw new ApiError(400, "Business ID, and Logo URL are required");
+  if (!logoUrl) {
+    throw new ApiError(400, "Logo URL is required");
   }
 
   const uploadedLogo = await uploadOnCloudinary(logoUrl);
