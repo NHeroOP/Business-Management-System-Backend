@@ -6,12 +6,12 @@ import path from "node:path";
 
 import { Client } from "../client/Client.model.js";
 import { Product } from "../product/Product.model.js";
-import { Invoice, type IInvoiceDocument } from "./Invoice.model.js";
+import { Invoice, type IInvoiceDocument, type IInvoiceItem } from "./Invoice.model.js";
 import { InvoiceCounter } from "../invoiceCounter/InvoiceCounter.model.js";
 
 import { ApiError } from "@/shared/utils/ApiError.js";
 import { allowedSortFields } from "./invoice.const.js";
-import { type InvoiceStatus } from "@/consts.js";
+import { INVOICE_SENT_EMAIL_TEMPLATE_ID, type InvoiceStatus } from "@/consts.js";
 import resend from "@/shared/config/resend.js";
 import type { CreateInvoiceInput, FindInvoicesInput, InvoiceIdParam, UpdateInvoiceInput } from "./invoice.validation.js";
 import { Business } from "../business/Business.model.js";
@@ -43,49 +43,34 @@ type PopulatedClient = {
 
 type UpdateInvoicePayload = UpdateInvoiceInput & InvoiceContext;
 
+type calculateInvoiceTotalsParams = {
+  items: IInvoiceItem[];
+  discount?: number;
+  tax?: number;
+}
+
+export const calculateInvoiceTotals = (
+  { items, discount = 0, tax = 0, }: calculateInvoiceTotalsParams
+) => {
+  const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+  const afterDiscount = subtotal - (subtotal * discount) / 100;
+  const total = afterDiscount + (afterDiscount * tax) / 100;
+  return { subtotal, total };
+};
+
 export const createInvoice = async (
   payload: createInvoicePayload
 ): Promise<IInvoiceDocument> => {
   const { userId, businessId, clientId, items, discount, tax, dueDate, notes } =
     payload;
 
-  if (items.length === 0) {
-    throw new ApiError(400, "Invoice must have at least one item");
-  }
-
-  for (const item of items) {
-    if (item.quantity <= 0) {
-      throw new ApiError(400, "Item quantity must be greater than zero");
-    }
-    if (!item.productId) {
-      throw new ApiError(400, "Item productId is required");
-    }
-  }
-
-  if (discount !== undefined) {
-    if (discount < 0) {
-      throw new ApiError(400, "Discount cannot be negative");
-    }
-    if (discount > 100) {
-      throw new ApiError(400, "Discount cannot be greater than 100");
-    }
-  }
-
-  if (tax !== undefined) {
-    if (tax < 0) {
-      throw new ApiError(400, "Tax cannot be negative");
-    }
-    if (tax > 100) {
-      throw new ApiError(400, "Tax cannot be greater than 100");
-    }
-  }
-
   if (!clientId) {
     throw new ApiError(400, "clientId is required");
   }
 
-
-  const business = await Business.findOne({ _id: businessId, isArchived: false }).select("settings");
+  const business = await Business.findOne({
+    _id: businessId, isArchived: false
+  }).select("settings");
 
   if (!business) {
     throw new ApiError(404, "Business not found");
@@ -142,12 +127,11 @@ export const createInvoice = async (
     };
   });
 
-  const subtotal = invoiceItems.reduce((sum, item) => sum + item.total, 0);
-  const totalAfterDiscount =
-    subtotal - (discount !== undefined ? subtotal * (discount / 100) : 0);
-  const totalAfterTax =
-    totalAfterDiscount +
-    (tax !== undefined ? totalAfterDiscount * (tax / 100) : 0);
+  const { subtotal, total } = calculateInvoiceTotals({
+    items: invoiceItems,
+    ...(discount && {discount: discount}),
+    ...(tax && {tax: tax})
+  })
   const year = new Date().getFullYear();
 
   let invoice: IInvoiceDocument | undefined;
@@ -187,7 +171,7 @@ export const createInvoice = async (
           client: clientId,
           items: invoiceItems,
           subtotal,
-          total: totalAfterTax,
+          total,
           invoiceNumber,
           ...(tax !== undefined && { tax }),
           ...(discount !== undefined && { discount }),
@@ -323,17 +307,11 @@ export const updateInvoice = async (payload: UpdateInvoicePayload) => {
     throw new ApiError(404, "Invoice not found");
   }
 
-  if (invoice.status === "CANCELLED") {
-    throw new ApiError(400, "Cannot update a cancelled invoice");
+  if (["PAID", "CANCELLED"].includes(invoice.status)) {
+    throw new ApiError(400, "Cannot update a paid or cancelled invoice");
   }
 
   if (discount !== undefined) {
-    if (discount < 0) {
-      throw new ApiError(400, "Discount cannot be negative");
-    }
-    if (discount > 100) {
-      throw new ApiError(400, "Discount cannot be greater than 100");
-    }
     invoice.discount = discount;
   }
 
@@ -349,20 +327,9 @@ export const updateInvoice = async (payload: UpdateInvoicePayload) => {
     invoice.tax = tax;
   }
 
-  if (items?.length === 0) {
-    throw new ApiError(400, "Invoice must have at least one item");
-  }
+  let invoiceItems: IInvoiceItem[] = invoice.items;
   
-  if (items) { 
-    for (const item of items) {
-      if (item.quantity <= 0) {
-        throw new ApiError(400, "Item quantity must be greater than zero");
-      }
-      if (!item.productId) {
-        throw new ApiError(400, "Item productId is required");
-      }
-    }
-
+  if (items && items.length > 0) { 
     const products = await Product.find({
       _id: { $in: items.map((item) => item.productId) },
       businessId,
@@ -379,7 +346,7 @@ export const updateInvoice = async (payload: UpdateInvoicePayload) => {
       products.map((product) => [product._id.toString(), product]),
     );
 
-    const invoiceItems = items.map((item) => {
+    invoiceItems = items.map((item) => {
       const product = productMap.get(item.productId.toString());
       if (!product) {
         throw new ApiError(400, `Product with id ${item.productId} not found`);
@@ -392,17 +359,17 @@ export const updateInvoice = async (payload: UpdateInvoicePayload) => {
         total: product.price * item.quantity,
       };
     });
-
     invoice.items = invoiceItems;
-    const subtotal = invoiceItems.reduce((sum, item) => sum + item.total, 0);
-    const totalAfterDiscount =
-      subtotal - (invoice.discount ? subtotal * (invoice.discount / 100) : 0);
-    const totalAfterTax =
-      totalAfterDiscount +
-      (invoice.tax ? totalAfterDiscount * (invoice.tax / 100) : 0);
-    invoice.subtotal = subtotal;
-    invoice.total = totalAfterTax;
   }
+
+  const { subtotal, total } = calculateInvoiceTotals({
+    items: invoice.items,
+    discount: invoice.discount,
+    tax: invoice.tax
+  })
+  
+  invoice.subtotal = subtotal;
+  invoice.total = total;
 
   await invoice.save();
 
@@ -458,8 +425,8 @@ export const changeInvoiceStatus = async ({
     throw new ApiError(404, "Invoice not found");
   }
 
-  if ((invoice.status === "CANCELLED")) {
-    throw new ApiError(400, "Cannot change status of a cancelled invoice");
+  if (["CANCELLED", "PAID"].includes(invoice.status)) {
+    throw new ApiError(400, "Cannot change status of a paid or cancelled invoice");
   }
 
   if (invoice.status === status) {
@@ -469,12 +436,25 @@ export const changeInvoiceStatus = async ({
   invoice.status = status;
   await invoice.save();
 
-  if (status === "SENT" && invoice.client && invoice.client.email) {
+  if ( status === "SENT" && invoice.client?.email) {
+    const business = await Business.findOne({
+      _id: businessId, isArchived: false
+    }).select("name").lean();
+
     await resend.emails.send({
-      from: "Invoice App <send@no-reply.nhero.me>",
+      from: `${business?.name || "Your Company"} <send@no-reply.nhero.me>`,
       to: invoice.client.email,
-      subject: `Invoice ${invoice.invoiceNumber} from Your Company`,
-      html: "",
+      subject: `Invoice ${invoice.invoiceNumber} from ${business?.name || "Your Company"}`,
+      template: {
+        id: INVOICE_SENT_EMAIL_TEMPLATE_ID,
+        variables: {
+          BUSINESS_NAME: business?.name || "Your Company",
+          CUSTOMER_NAME: invoice.client.name || "Valued Customer",
+          INVOICE_NUMBER: invoice.invoiceNumber,
+          AMOUNT_DUE: `${invoice.total} ${invoice.currency}`,
+          DUE_DATE: invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : "N/A",
+        }
+      },
     });
   }
 

@@ -7,11 +7,19 @@ export const createInvoiceSchema = z.object({
   items: z.array(
     z.object({
       productId: z.string().length(24, "Invalid product ID format"),
-      quantity: z.number().positive(),
+      quantity: z.number().int().positive("Quantity must be a positive integer"),
     }),
-  ),
-  tax: z.number().nonnegative().optional(),
-  discount: z.number().nonnegative().optional(),
+  ).min(1, "At least one invoice item is required"),
+  discount: z
+    .number()
+    .min(0, "Discount cannot be negative")
+    .max(100, "Discount cannot be greater than 100")
+    .optional(),
+  tax: z
+    .number()
+    .min(0, "Tax cannot be negative")
+    .max(100, "Tax cannot be greater than 100")
+    .optional(),
   notes: z.string().optional(),
   dueDate: z
     .string()
@@ -44,11 +52,17 @@ export const updateInvoiceSchema = z.object({
   items: z.array(
     z.object({
       productId: z.string().length(24, "Invalid product ID format"),
-      quantity: z.number().positive(),
+      quantity: z.number().int().positive("Quantity must be a positive integer"),
     }),
   ).optional(),
-  tax: z.number().nonnegative().optional(),
-  discount: z.number().nonnegative().optional(),
+  discount: z.number()
+    .min(0, "Discount cannot be negative")
+    .max(100, "Discount cannot be greater than 100")
+    .optional(),
+  tax: z.number()
+    .min(0, "Tax cannot be negative")
+    .max(100, "Tax cannot be greater than 100")
+    .optional(),
   notes: z.string().optional(),
   dueDate:z.date().optional(),
 });
