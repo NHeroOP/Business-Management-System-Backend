@@ -5,7 +5,6 @@
       "@/*": ["./src/*"]
     },
     // File Layout
-    "rootDir": "./src",
     "outDir": "./dist",
 
     // Environment Settings
@@ -46,7 +45,7 @@
     "moduleDetection": "force",
     "skipLibCheck": true
   },
-  "include": ["src/**/*", "src/shared/@types/**/*.d.ts"],
+  "include": ["src/**/*", "tests/**/*", "src/shared/@types/**/*.d.ts"],
   "ts-node": { 
     "require": ["tsconfig-paths/register"] 
   }
