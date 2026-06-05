@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/NHeroOP/Business-Management-System-Backend#readme",
   "dependencies": {
+    "@types/supertest": "^7.2.0",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.10.0",
     "cookie-parser": "^1.4.7",
@@ -52,9 +53,12 @@
     "@types/node": "^25.6.2",
     "@types/passport": "^1.0.17",
     "@types/passport-google-oauth20": "^2.0.17",
+    "mongodb-memory-server": "^11.2.0",
+    "supertest": "^7.2.2",
     "tsc-alias": "^1.8.17",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.21.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
   }
 }
