@@ -18,6 +18,7 @@ import type {
 
 import resend from "@/shared/config/resend.js";
 import { ApiError } from "@/shared/utils/ApiError.js";
+import { escapeRegex } from "@/shared/utils/escapeRegex.js";
 import {
   allowedInvoiceSortFields,
   INVOICE_SENT_EMAIL_TEMPLATE_ID,
@@ -56,10 +57,6 @@ type calculateInvoiceTotalsParams = {
   discount?: number;
   tax?: number;
 }
-
-
-const escapeRegex = (value: string) =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export const calculateInvoiceTotals = (
   { items, discount = 0, tax = 0, }: calculateInvoiceTotalsParams

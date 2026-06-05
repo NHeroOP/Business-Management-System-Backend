@@ -9,6 +9,7 @@ import type {
 } from "./client.validation.js";
 
 import { ApiError } from "@/shared/utils/ApiError.js";
+import { escapeRegex } from "@/shared/utils/escapeRegex.js";
 
 
 type CreateClientPayload = CreateClientInput & {
@@ -66,7 +67,7 @@ export const findClients = async (
     }, {
       $sort: sortBy === "name" ? { name: 1 } : { createdAt: -1 }
     }, {
-      $match: search ? { name: { $regex: search, $options: "i" } } : {}
+      $match: search ? { name: { $regex: escapeRegex(search), $options: "i" } } : {}
     }, {
       $project: {
         metadata: 0

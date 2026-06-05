@@ -10,6 +10,7 @@ import type {
 
 import { ApiError } from "@/shared/utils/ApiError.js";
 import { removeOnCloudinary, uploadOnCloudinary } from "@/shared/config/cloudinary.js";
+import { escapeRegex } from "@/shared/utils/escapeRegex.js";
 
 type CreateProductPayload = CreateProductInput & {
   businessId: Types.ObjectId;
@@ -60,7 +61,7 @@ export const createProduct = async (
   }
 
   if (sku) {
-    const existingProductWithSku = await Product.findOne({ sku });
+    const existingProductWithSku = await Product.findOne({ sku, businessId });
     if (existingProductWithSku) {
       throw new ApiError(400, "A product with the same SKU already exists");
     }
@@ -108,7 +109,7 @@ export const findProducts = async (
     }, {
       $sort: sortBy === "name" ? { name: 1 } : { createdAt: -1 }
     }, {
-      $match: search ? { name: { $regex: search, $options: "i" } } : {}
+      $match: search ? { name: { $regex: escapeRegex(search), $options: "i" } } : {}
     }, {
       $project: {
         metadata: 0

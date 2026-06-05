@@ -53,7 +53,7 @@ export const createPayment = async (
         throw new ApiError(404, "Invoice not found");
       }
 
-      if (amount === invoice.total) {
+      if (Math.round(amount * 100) === Math.round(invoice.total * 100)) {
         invoice.status = INVOICE_STATUS.PAID;
         await invoice.save({ session });
       }

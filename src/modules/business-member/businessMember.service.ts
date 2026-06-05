@@ -42,6 +42,7 @@ export const addBusinessMember = async (
       existingMember.role = role;
       // existingMember.permissions = permissions;
       await existingMember.save();
+      return existingMember;
     } else {
       throw new ApiError(400, "User is already a member of this business");
     }
