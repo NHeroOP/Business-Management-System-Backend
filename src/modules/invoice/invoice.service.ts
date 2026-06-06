@@ -1,14 +1,10 @@
-import path from "node:path";
-import Handlebars from "handlebars";
-import fs from "node:fs/promises";
-import puppeteer from "puppeteer";
 import { startSession, Types } from "mongoose";
 
+import { createPdf } from "./invoice.delivery.js";
 import { Client } from "../client/Client.model.js";
-import { Product } from "../product/Product.model.js";
 import { Business } from "../business/Business.model.js";
-import { calculateInvoiceTotals, mergeItems } from "./invoice.util.js";
 import { InvoiceCounter } from "../invoiceCounter/InvoiceCounter.model.js";
+import { buildInvoiceItems, calculateInvoiceTotals } from "./invoice.helper.js";
 import { Invoice, type IInvoiceDocument, type IInvoiceItem } from "./Invoice.model.js";
 import type {
   CreateInvoiceInput,
@@ -77,37 +73,7 @@ export const createInvoice = async (
     throw new ApiError(404, "Client not found");
   }
 
-  const mergedItems = mergeItems(items);
-
-  const products = await Product.find({
-    _id: { $in: mergedItems.map((item) => item.productId) },
-    businessId,
-    isArchived: false,
-  })
-    .select("_id name price")
-    .lean();
-
-  if (products.length !== mergedItems.length) {
-    throw new ApiError(400, "One or more products not found");
-  }
-
-  const productMap = new Map(
-    products.map((product) => [product._id.toString(), product]),
-  );
-
-  const invoiceItems = mergedItems.map((item) => {
-    const product = productMap.get(item.productId.toString());
-    if (!product) {
-      throw new ApiError(400, `Product with id ${item.productId} not found`);
-    }
-    return {
-      productId: product._id,
-      name: product.name,
-      quantity: item.quantity,
-      price: product.price,
-      total: product.price * item.quantity,
-    };
-  });
+  const invoiceItems = await buildInvoiceItems(businessId, items);
 
   const { subtotal, total } = calculateInvoiceTotals({
     items: invoiceItems,
@@ -312,37 +278,7 @@ export const updateInvoice = async (payload: UpdateInvoicePayload) => {
   let invoiceItems: IInvoiceItem[] = invoice.items;
   
   if (items && items.length > 0) { 
-    const mergedItems = mergeItems(items);
-
-    const products = await Product.find({
-      _id: { $in: mergedItems.map((item) => item.productId) },
-      businessId,
-      isArchived: false,
-    })
-      .select("_id name price")
-      .lean();
-
-    if (products.length !== mergedItems.length) {
-      throw new ApiError(400, "One or more products not found");
-    }
-
-    const productMap = new Map(
-      products.map((product) => [product._id.toString(), product]),
-    );
-
-    invoiceItems = mergedItems.map((item) => {
-      const product = productMap.get(item.productId.toString());
-      if (!product) {
-        throw new ApiError(400, `Product with id ${item.productId} not found`);
-      }
-      return {
-        productId: product._id,
-        name: product.name,
-        quantity: item.quantity,
-        price: product.price,
-        total: product.price * item.quantity,
-      };
-    });
+    invoiceItems = await buildInvoiceItems(businessId, items);
     invoice.items = invoiceItems;
   }
 
@@ -468,36 +404,6 @@ export const generateInvoicePdf = async ({
     throw new ApiError(404, "Invoice not found");
   }
 
-
-  const templatePath = path.join(
-    process.cwd(),
-    "src/modules/invoice/templates/invoice.hbs",
-  );
-
-  const source = await fs.readFile(
-    templatePath,
-    "utf-8",
-  );
-  const template = Handlebars.compile(source);
-
-  const html = template(invoice);
-
-  const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-
-  try {
-    const page = await browser.newPage();
-
-    await page.setContent(html, {
-      waitUntil: "load",
-    });
-
-    const pdf = await page.pdf({
-      format: "A4",
-      printBackground: true,
-    });
-
-    return pdf;
-  } finally {
-    await browser.close();
-  }
+  const pdf = await createPdf(invoice);
+  return pdf;
 };
