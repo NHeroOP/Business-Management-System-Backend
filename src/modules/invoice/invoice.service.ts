@@ -7,6 +7,7 @@ import { startSession, Types } from "mongoose";
 import { Client } from "../client/Client.model.js";
 import { Product } from "../product/Product.model.js";
 import { Business } from "../business/Business.model.js";
+import { calculateInvoiceTotals, mergeItems } from "./invoice.util.js";
 import { InvoiceCounter } from "../invoiceCounter/InvoiceCounter.model.js";
 import { Invoice, type IInvoiceDocument, type IInvoiceItem } from "./Invoice.model.js";
 import type {
@@ -25,11 +26,6 @@ import {
   type InvoiceStatus
 } from "@/consts.js";
 
-
-interface InvoiceItemInput {
-  productId: Types.ObjectId | string;
-  quantity: number;
-}
 
 type createInvoicePayload = CreateInvoiceInput & {
   userId: Types.ObjectId;
@@ -52,20 +48,6 @@ type PopulatedClient = {
 
 type UpdateInvoicePayload = UpdateInvoiceInput & InvoiceContext;
 
-type calculateInvoiceTotalsParams = {
-  items: IInvoiceItem[];
-  discount?: number;
-  tax?: number;
-}
-
-export const calculateInvoiceTotals = (
-  { items, discount = 0, tax = 0, }: calculateInvoiceTotalsParams
-) => {
-  const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-  const afterDiscount = subtotal - (subtotal * discount) / 100;
-  const total = afterDiscount + (afterDiscount * tax) / 100;
-  return { subtotal, total };
-};
 
 export const createInvoice = async (
   payload: createInvoicePayload
@@ -95,16 +77,7 @@ export const createInvoice = async (
     throw new ApiError(404, "Client not found");
   }
 
-  const mergedItems = Object.values(
-    items.reduce((acc, item): Record<string, InvoiceItemInput> => {
-      if (acc[item.productId.toString()]) {
-        acc[item.productId.toString()]!.quantity += item.quantity;
-      } else {
-        acc[item.productId.toString()] = { ...item };
-      }
-      return acc;
-    }, {}),
-  );
+  const mergedItems = mergeItems(items);
 
   const products = await Product.find({
     _id: { $in: mergedItems.map((item) => item.productId) },
@@ -339,16 +312,7 @@ export const updateInvoice = async (payload: UpdateInvoicePayload) => {
   let invoiceItems: IInvoiceItem[] = invoice.items;
   
   if (items && items.length > 0) { 
-    const mergedItems = Object.values(
-      items.reduce((acc, item): Record<string, InvoiceItemInput> => {
-        if (acc[item.productId.toString()]) {
-          acc[item.productId.toString()]!.quantity += item.quantity;
-        } else {
-          acc[item.productId.toString()] = { ...item };
-        }
-        return acc;
-      }, {}),
-    );
+    const mergedItems = mergeItems(items);
 
     const products = await Product.find({
       _id: { $in: mergedItems.map((item) => item.productId) },
