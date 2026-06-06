@@ -6,8 +6,6 @@ import type { PopulatedDoc } from "mongoose";
 
 import type { IInvoice } from "./Invoice.model.js";
 import { ApiError } from "@/shared/utils/ApiError.js";
-import { INVOICE_SENT_EMAIL_TEMPLATE_ID } from "@/consts.js";
-
 
 export const createPdf = async (
   invoice: PopulatedDoc<IInvoice>
