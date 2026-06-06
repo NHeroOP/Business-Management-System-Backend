@@ -1,32 +1,25 @@
-import crypto from 'crypto';
+import crypto from "crypto";
 import type { Types } from "mongoose";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 
 import { User } from "../user/User.model.js";
-import { generateTokens, hashData } from "./auth.util.js";
+import { generateTokens, hashData } from "./auth.helper.js";
 import { PASSWORD_RESET_EMAIL_TEMPLATE_ID } from "./auth.const.js";
 import type {
   RegisterPayload,
   LoginInput,
   RefreshTokenInput,
-  ResetPasswordInput
-} from './auth.validation.js';
+  ResetPasswordInput,
+} from "./auth.validation.js";
 
-import ENV from '@/env.js';
+import ENV from "@/env.js";
 import resend from "@/shared/config/resend.js";
 import { ApiError } from "@/shared/utils/ApiError.js";
 import { uploadOnCloudinary } from "@/shared/config/cloudinary.js";
 
-
-export const registerUserService = async (
-  payload: RegisterPayload
-) => {
+export const registerUserService = async (payload: RegisterPayload) => {
   const { avatarLocalPath, username, email, name, password } = payload;
-  if (
-    [name, email, username, password].some(
-      (field) => field?.trim() === "",
-    )
-  ) {
+  if ([name, email, username, password].some((field) => field?.trim() === "")) {
     throw new ApiError(400, "All fields are required");
   }
 
@@ -73,10 +66,10 @@ export const registerUserService = async (
   return createdUser;
 };
 
-export const loginUserService = async (
-  { identifier, password }: LoginInput
-) => { 
-
+export const loginUserService = async ({
+  identifier,
+  password,
+}: LoginInput) => {
   if (!identifier) {
     throw new ApiError(400, "Username or email is required");
   }
@@ -90,7 +83,7 @@ export const loginUserService = async (
     $or: [
       { username: identifier.toLowerCase() },
       { email: identifier.toLowerCase() },
-    ]
+    ],
   });
 
   if (!user) {
@@ -118,7 +111,7 @@ export const loginUserService = async (
     email: user.email,
     avatar: user.avatar,
   };
-  
+
   return { userData, accessToken, refreshToken };
 };
 
@@ -136,10 +129,10 @@ export const logoutUserService = async (userId: Types.ObjectId) => {
   }
 
   return user;
-}
+};
 
 export const refreshAccessTokenService = async (
-  incomingRefreshToken : RefreshTokenInput
+  incomingRefreshToken: RefreshTokenInput,
 ) => {
   if (!incomingRefreshToken) {
     throw new ApiError(401, "Refresh token is missing");
@@ -156,21 +149,22 @@ export const refreshAccessTokenService = async (
     throw new ApiError(401, "Invalid refresh token");
   }
 
-  const user = await User.findOne({ _id: decodedToken?._id, isArchived: false });
+  const user = await User.findOne({
+    _id: decodedToken?._id,
+    isArchived: false,
+  });
 
   if (!user) {
-    throw new ApiError(
-      401,
-      "Invalid refresh token - user not found",
-    );
+    throw new ApiError(401, "Invalid refresh token - user not found");
   }
 
   if (user.refreshToken !== incomingRefreshToken) {
     throw new ApiError(401, "Invalid refresh token");
   }
 
-  const { accessToken, refreshToken } =
-    await generateTokens(user._id.toString());
+  const { accessToken, refreshToken } = await generateTokens(
+    user._id.toString(),
+  );
 
   return {
     accessToken,
@@ -189,7 +183,7 @@ export const forgotPasswordService = async (email: string) => {
     throw new ApiError(404, "User not found");
   }
 
-  const rawPasswordResetToken = crypto.randomBytes(32).toString('hex'); 
+  const rawPasswordResetToken = crypto.randomBytes(32).toString("hex");
   const hashedPasswordResetToken = hashData(rawPasswordResetToken);
 
   user.passwordResetToken = hashedPasswordResetToken;
@@ -197,9 +191,9 @@ export const forgotPasswordService = async (email: string) => {
 
   await user.save({ validateBeforeSave: false });
 
-  const rootUrl = ENV.NODE_ENV === "production" ? ENV.BASE_URL : "http://localhost:3000";
+  const rootUrl =
+    ENV.NODE_ENV === "production" ? ENV.BASE_URL : "http://localhost:3000";
   const resetLink = `${rootUrl}/reset-password?token=${rawPasswordResetToken}&userId=${user._id}`;
-
 
   try {
     const { data, error } = await resend.emails.send({
@@ -219,16 +213,16 @@ export const forgotPasswordService = async (email: string) => {
     }
 
     return data;
-  }
-  catch (error) {
+  } catch (error) {
     throw new ApiError(500, "Error while sending password reset email");
   }
-  
 };
 
-export const resetPasswordService = async (
-  { token, userId, newPassword }: ResetPasswordInput
-) => { 
+export const resetPasswordService = async ({
+  token,
+  userId,
+  newPassword,
+}: ResetPasswordInput) => {
   if (!token || !userId || !newPassword) {
     throw new ApiError(400, "Token, user ID and new password are required");
   }
@@ -238,14 +232,17 @@ export const resetPasswordService = async (
   const user = await User.findOne({
     _id: userId,
     passwordResetToken: hashedToken,
-    isArchived: false
-  })
+    isArchived: false,
+  });
 
   if (!user) {
     throw new ApiError(400, "Invalid or expired password reset token");
   }
 
-  if (user.passwordResetTokenExpiry && user.passwordResetTokenExpiry < new Date()) {
+  if (
+    user.passwordResetTokenExpiry &&
+    user.passwordResetTokenExpiry < new Date()
+  ) {
     throw new ApiError(400, "Password reset token has expired");
   }
 
@@ -256,13 +253,14 @@ export const resetPasswordService = async (
   await user.save();
 };
 
-export const getCurrentUserService = async (userId: Types.ObjectId) => { 
-  const user = await User.findOne({ _id: userId, isArchived: false }).select("-password -refreshToken");
+export const getCurrentUserService = async (userId: Types.ObjectId) => {
+  const user = await User.findOne({ _id: userId, isArchived: false }).select(
+    "-password -refreshToken",
+  );
 
   if (!user) {
     throw new ApiError(404, "User not found");
   }
 
   return user;
-}
-
+};

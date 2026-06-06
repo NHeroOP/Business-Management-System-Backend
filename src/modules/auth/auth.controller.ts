@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 
-import { generateTokens } from "./auth.util.js";
+import { generateTokens } from "./auth.helper.js";
 import { cookieOptions } from "./auth.const.js";
 import {
   forgotPasswordService,
@@ -22,21 +22,22 @@ import {
 import { asyncHandler } from "@/shared/utils/asyncHandler.js";
 import { ApiResponse } from "@/shared/utils/ApiResponse.js";
 
+export const registerUser = asyncHandler(
+  async (req: Request, res: Response) => {
+    const body = registerSchema.parse(req.body);
+    const createdUser = await registerUserService({
+      ...(req.file && { avatarLocalPath: req.file.path }),
+      ...body,
+    });
 
-export const registerUser = asyncHandler(async (req: Request, res: Response) => {
-  const body = registerSchema.parse(req.body);
-  const createdUser = await registerUserService({
-    ...(req.file && { avatarLocalPath: req.file.path }),
-    ...body,
-  })
-
-  return res
-    .status(201)
-    .json(new ApiResponse(201, createdUser, "User registered successfully"));
-});
+    return res
+      .status(201)
+      .json(new ApiResponse(201, createdUser, "User registered successfully"));
+  },
+);
 
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
-  const { identifier, password } = loginSchema.parse(req.body)
+  const { identifier, password } = loginSchema.parse(req.body);
   const { userData, accessToken, refreshToken } = await loginUserService({
     identifier,
     password,
@@ -71,59 +72,65 @@ export const logoutUser = asyncHandler(async (req: Request, res: Response) => {
     .json(new ApiResponse(200, {}, "User logged out successfully"));
 });
 
-export const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
-  const incomingRefreshToken = refreshTokenSchema.parse(
-    req.cookies.refreshToken || req.body.refreshToken
-  );
-
-  const { accessToken, refreshToken } = await refreshAccessTokenService(
-    incomingRefreshToken
-  );
-
-  return res
-    .status(200)
-    .cookie("accessToken", accessToken, cookieOptions)
-    .cookie("refreshToken", refreshToken, cookieOptions)
-    .json(
-      new ApiResponse(
-        200,
-        {
-          accessToken,
-          refreshToken,
-        },
-        "Access token refreshed successfully",
-      ),
+export const refreshAccessToken = asyncHandler(
+  async (req: Request, res: Response) => {
+    const incomingRefreshToken = refreshTokenSchema.parse(
+      req.cookies.refreshToken || req.body.refreshToken,
     );
-});
 
-export const forgotPassword = asyncHandler(async (req: Request, res: Response) => { 
-  const { email } = forgotPasswordSchema.parse(req.body);
-  await forgotPasswordService(email);
+    const { accessToken, refreshToken } =
+      await refreshAccessTokenService(incomingRefreshToken);
 
-  return res.status(200).json(
-    new ApiResponse(200, {}, "Password reset email sent successfully")
-  );
-});
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, cookieOptions)
+      .cookie("refreshToken", refreshToken, cookieOptions)
+      .json(
+        new ApiResponse(
+          200,
+          {
+            accessToken,
+            refreshToken,
+          },
+          "Access token refreshed successfully",
+        ),
+      );
+  },
+);
 
-export const resetPassword = asyncHandler(async (req: Request, res: Response) => { 
-  const { token, userId, newPassword } = resetPasswordSchema.parse(req.body);
+export const forgotPassword = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { email } = forgotPasswordSchema.parse(req.body);
+    await forgotPasswordService(email);
 
-  await resetPasswordService({ token, userId, newPassword });
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "Password reset email sent successfully"));
+  },
+);
 
-  return res.status(200).json(
-    new ApiResponse(200, {}, "Password reset successfully")
-  );
-});
+export const resetPassword = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { token, userId, newPassword } = resetPasswordSchema.parse(req.body);
 
-export const getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user!._id;
-  const user = await getCurrentUserService(userId);
+    await resetPasswordService({ token, userId, newPassword });
 
-  return res.status(200).json(
-    new ApiResponse(200, user, "Current user fetched successfully")
-  );
-});
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "Password reset successfully"));
+  },
+);
 
+export const getCurrentUser = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user!._id;
+    const user = await getCurrentUserService(userId);
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, user, "Current user fetched successfully"));
+  },
+);
 
 export const googleAuth = asyncHandler(async (req: Request, res: Response) => {
   const user = req.user!;
