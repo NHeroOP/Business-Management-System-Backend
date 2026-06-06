@@ -22,7 +22,7 @@ export const calculateInvoiceTotals = (
 ) => {
   const subtotal = items.reduce((sum, item) => sum + item.total, 0);
   const afterDiscount = subtotal - (subtotal * discount) / 100;
-  const total = afterDiscount + (afterDiscount * tax) / 100;
+  const total = afterDiscount + (subtotal * tax) / 100;
   return { subtotal, total };
 };
 
