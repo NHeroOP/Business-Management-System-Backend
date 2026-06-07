@@ -182,7 +182,7 @@ export const forgotPasswordService = async (email: string) => {
   const user = await User.findOne({ email, isArchived: false });
 
   if (!user) {
-    throw new ApiError(404, "User not found");
+    throw new ApiError(200, "If email exists, a password reset link will be sent");
   }
 
   const rawPasswordResetToken = crypto.randomBytes(32).toString("hex");
