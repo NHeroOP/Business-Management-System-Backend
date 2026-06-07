@@ -89,7 +89,7 @@ export const loginUserService = async ({
   });
 
   if (!user) {
-    throw new ApiError(404, "User not found");
+    throw new ApiError(401, "Invalid username/email or password");
   }
 
   if (!user.password) {

@@ -1,7 +1,7 @@
 import { app } from "@/app.js";
 import request from "supertest"
 import { describe, it, expect } from "vitest";
-import { createUserPayload } from "../../factories/user.factory.js";
+import { createUser, createUserPayload } from "../../factories/user.factory.js";
 
 describe("POST /auth/register", () => { 
   it("should create a user", async () => {
@@ -20,14 +20,7 @@ describe("POST /auth/register", () => {
   });
   
   it("should reject duplicate email", async () => {
-    const existingUser = createUserPayload();
-    await request(app)
-      .post("/api/v1/auth/register")
-      .field("username", existingUser.username)
-      .field("name", existingUser.name)
-      .field("email", existingUser.email)
-      .field("password", existingUser.password)
-      .attach("avatarUrl", "tests/fixtures/avatar.jpg");
+    const existingUser = await createUser();
     const duplicateUser = createUserPayload();
     const res = await request(app)
       .post("/api/v1/auth/register")
@@ -41,14 +34,7 @@ describe("POST /auth/register", () => {
   });
   
   it("should reject duplicate username", async () => {
-    const existingUser = createUserPayload();
-    await request(app)
-      .post("/api/v1/auth/register")
-      .field("username", existingUser.username)
-      .field("name", existingUser.name)
-      .field("email", existingUser.email)
-      .field("password", existingUser.password)
-      .attach("avatarUrl", "tests/fixtures/avatar.jpg");
+    const existingUser = await createUser();
     
     const duplicateUser = createUserPayload();
     const res = await request(app)

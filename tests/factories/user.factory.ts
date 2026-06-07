@@ -11,6 +11,10 @@ export const createUserPayload = () => ({
 export const createUser = async (overrides = {}) => {
   return await User.create({
     ...createUserPayload(),
+    avatar: {
+      url: faker.image.avatar(),
+      publicId: faker.string.alpha({ length: 8 }),
+    },
     ...overrides,
   });
 };
