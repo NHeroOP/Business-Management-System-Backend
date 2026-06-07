@@ -1,13 +1,15 @@
-import { beforeAll, beforeEach, afterAll } from "vitest";
+import { beforeAll, beforeEach, afterAll, vi } from "vitest";
 import { connectTestDatabase, clearDatabase, closeDatabase } from "./database.js";
 
-import "../mocks/cloudinary.mock.js";
+import "@tests/mocks/cloudinary.mock.js";
+import "@tests/mocks/resend.mock.js";
 
 beforeAll(async () => {
   await connectTestDatabase();
 });
 
 beforeEach(async () => {
+  vi.clearAllMocks();
   await clearDatabase();
 });
 
