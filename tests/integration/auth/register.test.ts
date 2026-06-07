@@ -1,7 +1,7 @@
 import { app } from "@/app.js";
 import request from "supertest"
 import { describe, it, expect } from "vitest";
-import { createUser, createUserPayload } from "../../factories/user.factory.js";
+import { createUser, createUserPayload } from "@tests/factories/user.factory.js";
 
 describe("POST /auth/register", () => { 
   it("should create a user", async () => {
