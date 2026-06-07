@@ -3,7 +3,7 @@
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"],
-      "@tests/*": ["tests/*"]
+      "@tests/*": ["./tests/*"]
     },
     // File Layout
     "outDir": "./dist",
