@@ -1,3 +1,4 @@
+import fs from "fs";
 import crypto from "crypto";
 import type { Types } from "mongoose";
 import jwt, { type JwtPayload } from "jsonwebtoken";
@@ -27,15 +28,16 @@ export const registerUserService = async (payload: RegisterPayload) => {
     $or: [{ username }, { email }],
   });
 
+  if (!avatarLocalPath) {
+    throw new ApiError(400, "Avatar image is required");
+  }
+
   if (userExists) {
+    fs.unlinkSync(avatarLocalPath);
     throw new ApiError(
       409,
       "User with the same username or email already exists",
     );
-  }
-
-  if (!avatarLocalPath) {
-    throw new ApiError(400, "Avatar image is required");
   }
 
   const avatar = await uploadOnCloudinary(avatarLocalPath);
