@@ -25,13 +25,13 @@ router.use(
 router.route("/").get(getInvoices).post(createInvoice);
 
 router
-  .route("/:id")
+  .route("/:invoiceId")
   .get(getInvoiceById)
   .patch(updateInvoice)
   .delete(deleteInvoice);
 
-router.route("/:id/status").patch(updateInvoiceStatus);
+router.route("/:invoiceId/status").patch(updateInvoiceStatus);
 
-router.route("/:id/pdf").get(downloadInvoicePdf);
+router.route("/:invoiceId/pdf").get(downloadInvoicePdf);
 
 export default router;
