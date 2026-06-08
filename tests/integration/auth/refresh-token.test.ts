@@ -1,7 +1,7 @@
 import { app } from "@/app.js";
 import request from "supertest";
 import { describe, it, expect } from "vitest";
-import { createUser } from "@tests/factories/user.factory.js";
+import { createUser } from "@tests/factories/index.js";
 
 describe("POST /auth/refresh-token", () => {
   const endpoint = "/api/v1/auth/refresh-token";

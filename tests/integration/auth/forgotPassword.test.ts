@@ -1,7 +1,7 @@
 import { app } from "@/app.js";
 import request from "supertest";
 import { describe, it, expect } from "vitest";
-import { createUser } from "@tests/factories/user.factory.js";
+import { createUser } from "@tests/factories/index.js";
 import { sendEmailMock } from "@tests/mocks/resend.mock.js";
 import { User } from "@/modules/user/User.model.js";
 
