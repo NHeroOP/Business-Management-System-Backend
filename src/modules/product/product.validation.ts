@@ -3,10 +3,10 @@ import * as z from "zod";
 
 export const createProductSchema = z.object({
   name: z.string().min(1, "Product name is required"),
-  price: z.number().positive("Price must be a positive number"),
+  price: z.coerce.number().positive("Price must be a positive number"),
   type: z.enum(Object.values(PRODUCT_TYPE), "Type must be either 'PRODUCT' or 'SERVICE'"),
   description: z.string().optional(),
-  stockQuantity: z.number().int().nonnegative("Stock quantity must be a non-negative integer"),
+  stockQuantity: z.coerce.number().int().nonnegative("Stock quantity must be a non-negative integer"),
   sku: z.string().optional(),
   category: z.string().optional(),
 });

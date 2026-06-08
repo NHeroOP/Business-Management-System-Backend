@@ -1,3 +1,4 @@
+import fs from "fs"
 import { Types, type AggregatePaginateResult } from "mongoose";
 
 import { Product, type IProductDocument } from "./Product.model.js";
@@ -49,20 +50,23 @@ export const createProduct = async (
     imageUrl,
   } = payload;
 
+  if (!imageUrl) {
+    throw new ApiError(400, "Product image is required");
+  }
+
   if (!name || !price || !type || !stockQuantity) {
+    fs.unlinkSync(imageUrl);
     throw new ApiError(
       400,
       "Name, price, type, and stock quantity are required",
     );
   }
 
-  if (!imageUrl) {
-    throw new ApiError(400, "Product image is required");
-  }
 
   if (sku) {
     const existingProductWithSku = await Product.findOne({ sku, businessId });
     if (existingProductWithSku) {
+      fs.unlinkSync(imageUrl);
       throw new ApiError(400, "A product with the same SKU already exists");
     }
   }
