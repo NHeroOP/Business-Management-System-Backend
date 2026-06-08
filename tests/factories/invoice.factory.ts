@@ -3,12 +3,19 @@ import { createBusiness } from "./business.factory.js";
 import { createClient } from "./client.factory.js";
 import { createProduct } from "./product.factory.js";
 import { createUser } from "./user.factory.js";
+import { createBusinessMember } from "./business-member.factory.js";
+import { BUSINESS_ROLE } from "@/consts.js";
 
 export const createInvoicePayload = async () => {
   const user = await createUser();
   const business = await createBusiness({
     createdBy: user._id,
   });
+  await createBusinessMember({
+    userId: user._id,
+    businessId: business._id,
+    role: BUSINESS_ROLE.OWNER
+  })
   const product1 = await createProduct({
     businessId: business._id,
     createdBy: user._id,
@@ -28,16 +35,17 @@ export const createInvoicePayload = async () => {
     }
   ]
 
-  const clientId = (await createClient({
+  const client = await createClient({
     businessId: business._id,
     createdBy: user._id,
-  }))._id;
+  });
 
   return {
     user,
     business,
+    client,
     payload: {
-      client: clientId,
+      clientId: client._id,
       items,
     }
   }
