@@ -70,7 +70,7 @@ export const createInvoice = async (
   });
 
   if (!clientExist) {
-    throw new ApiError(404, "Client not found");
+    throw new ApiError(400, "Invalid clientId");
   }
 
   const invoiceItems = await buildInvoiceItems(businessId, items);
