@@ -9,6 +9,7 @@
 - Both tokens issued as **httpOnly cookies** — inaccessible to client-side JavaScript
 - `Authorization: Bearer <token>` header also accepted for programmatic API access
 - On logout, the refresh token is cleared from the database (`$unset: { refreshToken: 1 }`)
+- JWT error messages are generic — no information disclosure about whether a user exists or a token is expired
 
 ### Password Storage
 
@@ -47,7 +48,7 @@ Every business-scoped request validates `x-business-id` against `BusinessMember`
 BusinessMember.findOne({ businessId, userId: req.user._id, isArchived: false })
 ```
 
-A valid JWT without membership in the requested business receives `403`. All downstream queries include `businessId` from `req.workspace`.
+A valid JWT without membership in the requested business receives `403`. All downstream queries include `businessId` from `req.workspace`. Cross-tenant data access is not possible through the API layer.
 
 ---
 
@@ -56,7 +57,7 @@ A valid JWT without membership in the requested business receives `403`. All dow
 - **Helmet** sets `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, and other security headers globally
 - `strictTransportSecurity` (HSTS) enabled only in production (`NODE_ENV === "production"`)
 - CORS configured with explicit `origin` from `CORS_ORIGIN` env var with `credentials: true`
-- Rate limiting via `express-rate-limit` on auth routes
+- Rate limiting via `express-rate-limit` on all routes
 
 ---
 
@@ -72,13 +73,15 @@ All inputs validated with **Zod 4** before reaching service functions. `ZodError
 }
 ```
 
+User-supplied strings used in MongoDB `$regex` queries are escaped with a dedicated `escapeRegex` helper to prevent ReDoS attacks.
+
 ---
 
 ## File Uploads
 
 - Multer writes files to `public/temp/` temporarily; temp files are deleted after processing regardless of success or failure
+- Filenames include a `Date.now()` prefix to prevent concurrent uploads from colliding in the temp directory
 - Only the Cloudinary URL and `publicId` are stored in the database
-- File type validation is limited to Multer's built-in handling
 
 ---
 
@@ -87,17 +90,7 @@ All inputs validated with **Zod 4** before reaching service functions. `ZodError
 - **Soft deletes** — `isArchived: true` across all collections; no data is permanently deleted
 - **MongoDB transactions** — invoice number generation + document creation and payment recording + invoice closure both use sessions with commit/abort
 - **Price snapshots** — invoice item totals are immutable after creation
-
----
-
-## Known Security Gaps
-
-| Issue | Risk | Fix |
-|-------|------|-----|
-| No rate limiting on non-auth routes | Enumeration / DoS | Apply `express-rate-limit` globally |
-| `process.env.SECRET!!` non-null assertions | App starts silently with undefined secrets | Validate env vars at startup with a Zod schema |
-| Product image update route not implemented | No orphaned images for products since the route doesn't exist | Planned when a frontend is added |
-| Multer uses `file.originalname` with no uniqueness suffix | Concurrent same-filename uploads collide in temp dir | Append `Date.now()` or UUID to filename |
+- **Env validation** — all required environment variables are validated at startup via a Zod schema; the process exits immediately if any are missing
 
 ---
 
@@ -107,8 +100,8 @@ The following have no defaults and must be set:
 
 ```
 MONGODB_URI              Replica set URI — transactions require a replica set
-ACCESS_TOKEN_SECRET      JWT signing key for access tokens
-REFRESH_TOKEN_SECRET     JWT signing key for refresh tokens
+ACCESS_TOKEN_SECRET      JWT signing key for access tokens (min 32 chars)
+REFRESH_TOKEN_SECRET     JWT signing key for refresh tokens (min 32 chars)
 CLOUDINARY_CLOUD_NAME    
 CLOUDINARY_API_KEY       
 CLOUDINARY_API_SECRET    

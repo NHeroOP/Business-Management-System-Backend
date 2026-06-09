@@ -51,7 +51,6 @@ Pre-save hook: bcrypt hashes `password` on modification.
 | `settings.invoicePrefix` | String | Default `"INV"` |
 | `settings.enableTaxes` | Boolean | Default `true` |
 | `settings.taxPercentage` | Number | Default `18` |
-| `plan` | `"free" \| "pro"` | Default `"free"` |
 | `isArchived` | Boolean | Soft delete |
 
 ---
@@ -91,11 +90,11 @@ Compound unique index: `{ businessId, userId }` — one active membership per us
 | Field | Type | Notes |
 |-------|------|-------|
 | `businessId` | ObjectId | ref: Business, indexed |
-| `name` | String | Required; text-indexed |
+| `name` | String | Required |
 | `type` | `PRODUCT \| SERVICE` | Default `PRODUCT` |
 | `description` | String | — |
 | `price` | Number | Required, non-negative |
-| `sku` | String | Sparse unique index |
+| `sku` | String | Sparse compound unique index `{ sku, businessId }` — per-business uniqueness |
 | `image` | `{ url, publicId }` | Cloudinary reference |
 | `isArchived` | Boolean | Soft delete |
 
@@ -169,6 +168,7 @@ Compound unique index: `{ businessId, year }`. Incremented via `findOneAndUpdate
 |-----------|-------|------|---------|
 | `users` | `username` | Unique | Login lookup |
 | `users` | `email` | Unique | Login + duplicate check |
+| `users` | `passwordResetToken` | Standard | Reset token lookup |
 | `businesses` | `slug` | Unique | URL routing |
 | `businessmembers` | `businessId` | Standard | Member listing |
 | `businessmembers` | `userId` | Standard | Workspace resolution |
@@ -176,9 +176,11 @@ Compound unique index: `{ businessId, year }`. Incremented via `findOneAndUpdate
 | `clients` | `businessId` | Standard | Tenant scoping |
 | `clients` | `name` | Text | Search |
 | `products` | `businessId` | Standard | Tenant scoping |
-| `products` | `sku` | Sparse unique | SKU uniqueness |
+| `products` | `{ sku, businessId }` | Compound sparse unique | Per-business SKU uniqueness |
 | `invoices` | `invoiceNumber` | Unique | Number uniqueness |
-| `invoices` | `businessId`, `client`, `status` | Standard | Filtering |
+| `invoices` | `{ businessId, invoiceNumber }` | Compound unique | — |
+| `invoices` | `{ businessId, status, createdAt }` | Compound | Status filtering |
+| `invoices` | `{ businessId, client, createdAt }` | Compound | Client invoice listing |
 | `invoicecounters` | `{ businessId, year }` | Compound unique | Sequence atomicity |
 | `payments` | `{ businessId, paidAt }` | Compound | Date range queries |
 | `payments` | `{ businessId, invoiceId }` | Compound | Invoice payment lookup |

@@ -32,7 +32,7 @@ A multi-tenant REST API for invoicing, payments, and business operations. Models
 | Email | Resend |
 | PDF | Puppeteer + Handlebars |
 | Validation | Zod 4 |
-| Pagination | mongoose-aggregate-paginate-v2 |
+| Testing | Vitest · Supertest · mongodb-memory-server |
 
 ---
 
@@ -142,30 +142,4 @@ See [docs/API.md](docs/API.md) for the full reference.
 bun run test
 ```
 
-Integration tests cover auth, invoices, clients, products, and payments against a real in-memory MongoDB replica set (required for transactions). Unit tests cover invoice calculation logic.
-
-**Performance optimizations applied:**
-- bcrypt work factor reduced to 1 round in tests (~100× faster per user creation)
-- External services mocked globally: Cloudinary, Resend
-- File upload tests use in-memory `Buffer` instead of disk reads to avoid socket EPIPE
-- Factories resolve shared dependencies (`businessId`, `createdBy`) together to avoid phantom DB writes
-- `createInvoicePayload` creates products and client in parallel via `Promise.all`
-- Vitest runs with `isolate: false` + `pool: forks` — single module registry, native addon safe
-
----
-
-## Project Status
-
-Functional and feature-complete for the core invoicing workflow.
-
----
-
-## Resume Highlights
-
-- Architected a multi-tenant REST API in Node.js/TypeScript serving multiple isolated business workspaces from a single deployment, with per-request workspace resolution via a custom Express middleware chain
-- Implemented role-based access control (OWNER/ADMIN/EMPLOYEE) enforced at the middleware layer using a composable `requireRole` guard backed by a `BusinessMember` join entity
-- Designed atomic invoice number generation using MongoDB transactions and a dedicated `InvoiceCounter` sequence collection, guaranteeing gap-free `INV-YYYY-NNNN` sequences under concurrent requests
-- Built a transactional payment system that atomically records payments and marks invoices as `PAID` within a single MongoDB session
-- Engineered invoice line-item price snapshotting to preserve financial accuracy when product prices change after invoice creation
-- Built paginated invoice search using MongoDB aggregation pipelines with `$lookup` + post-join `$match` for cross-collection client filtering
-- Applied TypeScript strict mode with custom Express request augmentation (`req.user`, `req.workspace`) via declaration merging for end-to-end type safety across the middleware chain
+Integration tests go through the full HTTP stack via Supertest against a real in-memory MongoDB replica set (transactions require a replica set). Unit tests cover pure calculation logic.

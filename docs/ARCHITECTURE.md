@@ -8,7 +8,7 @@ Client
   ├── /api/v1/auth/*              verifyJWT (select routes) → Controller
   ├── /api/v1/users/*             verifyJWT → Controller
   ├── /api/v1/businesses          verifyJWT → Controller           (POST create — no workspace)
-  ├── /api/v1/businesses/current  verifyJWT → resolveWorkspace → requireRole → Controller
+  ├── /api/v1/businesses/:id      verifyJWT → Controller           (no workspace — uses :businessId param)
   └── /api/v1/{domain}/*          verifyJWT → resolveWorkspace → requireRole(roles) → Controller → Service → MongoDB
                                                                                                            ↓
                                                                                                  Cloudinary / Resend
@@ -22,7 +22,7 @@ Client
 | `resolveWorkspace` | `workspace.middleware.ts` | `x-business-id` header + `req.user._id` | `req.workspace` | 400 / 403 |
 | `requireRole(roles)` | `rbac.middleware.ts` | `req.workspace.role` | — | 403 |
 
-Business routes (`POST /businesses`) skip `resolveWorkspace` — creating a new business doesn't require an existing workspace. The `/businesses/current` and `/businesses/current/logo` routes use `resolveWorkspace` to identify the active business from the `x-business-id` header.
+Business CRUD routes (`/businesses/:businessId`) use the `:businessId` path parameter directly — they skip `resolveWorkspace` since they are managing the business itself, not operating within it.
 
 ### TypeScript Request Augmentation
 
@@ -162,7 +162,7 @@ export const requireRole = (roles: BusinessRole | BusinessRole[]) =>
 const counter = await InvoiceCounter.findOneAndUpdate(
   { businessId, year },
   { $inc: { sequence: 1 } },
-  { new: true, upsert: true }
+  { returnDocument: "after", upsert: true }
 ).session(session);
 
 const invoiceNumber = `INV-${year}-${String(counter.sequence).padStart(4, "0")}`;
@@ -189,7 +189,7 @@ Product price changes after creation have no effect on historical records.
 const session = await startSession();
 session.startTransaction();
 try {
-  if (amount >= invoice.total) {
+  if (Math.round(amount * 100) === Math.round(invoice.total * 100)) {
     invoice.status = INVOICE_STATUS.PAID;
     await invoice.save({ session });
   }
@@ -212,10 +212,12 @@ Invoice.aggregate([
   { $match: { businessId, isArchived: false } },
   { $lookup: { from: "clients", localField: "client", foreignField: "_id", as: "client" } },
   { $addFields: { client: { $arrayElemAt: ["$client", 0] } } },
-  { $match: { "client.email": { $regex: email, $options: "i" } } },
+  { $match: { "client.email": { $regex: escapeRegex(email), $options: "i" } } },
   { $sort: { [sortBy]: sortOrder } },
 ])
 ```
+
+User-supplied search strings are escaped before use in `$regex` to prevent ReDoS.
 
 ## Shared Utilities
 
@@ -225,6 +227,7 @@ Invoice.aggregate([
 | `ApiResponse` | Uniform success envelope: `{ statusCode, data, message, success }` |
 | `asyncHandler` | Wraps async handlers; forwards rejected promises to `next(err)` |
 | `errorHandler` | Global Express error handler; handles `ZodError`, `ApiError`, and unknown errors |
+| `escapeRegex` | Escapes user input before insertion into MongoDB `$regex` |
 
 ## Constants
 
@@ -237,10 +240,3 @@ INVOICE_STATUS   → DRAFT | SENT | PAID | OVERDUE | CANCELLED
 PAYMENT_METHOD   → CASH | UPI | BANK | CARD
 PAYMENT_STATUS   → SUCCESS | PENDING | FAILED
 ```
-
-## Known Issues
-
-| Issue | Impact |
-|-------|--------|
-| Product image update route not implemented | `removeOnCloudinary` is wired for avatar and logo only; product image replacement is out of scope for the current API |
-| `generateInvoicePdf` uses `process.cwd()` for template path | Breaks if server is not started from project root |

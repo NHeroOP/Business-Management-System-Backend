@@ -70,7 +70,7 @@ All routes require `verifyJWT`.
 
 ## Businesses — `/api/v1/businesses`
 
-All routes require `verifyJWT`. No workspace resolution — uses `:businessId` path param.
+All routes require `verifyJWT`. Uses `:businessId` path parameter — no `x-business-id` header required.
 
 | Method | Path | Role | Notes |
 |--------|------|------|-------|
@@ -147,7 +147,7 @@ All routes require `verifyJWT + resolveWorkspace + requireRole(ALL)`.
 | GET | `/:id` | Populates `client` |
 | PATCH | `/:id` | Update items / tax / discount / dueDate / notes; recalculates totals |
 | DELETE | `/:id` | Soft delete |
-| PATCH | `/:id/status` | `{ status }` — see transitions below |
+| PATCH | `/:id/status` | `{ status }` — transitions: DRAFT → SENT → OVERDUE / CANCELLED |
 | GET | `/:id/pdf` | Returns `application/pdf` |
 
 **POST `/invoices` body:**
@@ -180,8 +180,7 @@ All routes require `verifyJWT + resolveWorkspace + requireRole(ALL)`.
 }
 ```
 
-**Status transitions:**  
-`SENT` triggers a client email via Resend. `PAID` can be set manually here, but the canonical path is via `POST /payments` (atomic with payment record).
+Sending an invoice (`status: "SENT"`) triggers a client notification email via Resend. The canonical way to mark an invoice `PAID` is via `POST /payments` — this atomically creates the payment record and closes the invoice in a single transaction.
 
 ---
 
@@ -206,7 +205,7 @@ All routes require `verifyJWT + resolveWorkspace + requireRole(ALL)`.
 }
 ```
 
-If `amount >= invoice.total`, invoice status is atomically updated to `PAID` in the same MongoDB session.
+When `amount` equals `invoice.total`, invoice status is atomically updated to `PAID` in the same MongoDB session.
 
 ---
 
@@ -232,9 +231,9 @@ All paginated endpoints return:
 
 | Status | Cause |
 |--------|-------|
-| 400 | Validation failure (ZodError) or bad business logic (e.g. negative discount) |
+| 400 | Validation failure (ZodError) or business logic error |
 | 401 | Missing or invalid JWT |
 | 403 | Valid JWT but no membership in the requested workspace, or insufficient role |
 | 404 | Resource not found |
-| 409 | Conflict — duplicate username/email, or invoice already paid |
+| 409 | Conflict — duplicate username/email |
 | 500 | Unhandled server error (stack trace included in `development`) |
