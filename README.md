@@ -84,13 +84,13 @@ All business logic lives in the service layer. Controllers are thin wrappers: pa
 ```bash
 git clone https://github.com/NHeroOP/Business-Management-System-Backend.git
 cd Business-Management-System-Backend
-npm install
+bun install
 cp .env.example .env   # fill in values
-npm run dev
+bun run dev
 ```
 
 ```bash
-npm run build && npm start   # production
+bun run build && bun start   # production
 ```
 
 ### Environment Variables
@@ -134,12 +134,29 @@ See [docs/API.md](docs/API.md) for the full reference.
 
 ---
 
+## Testing
+
+**Stack**: Vitest · Supertest · mongodb-memory-server · @faker-js/faker
+
+```bash
+bun run test
+```
+
+Integration tests cover auth, invoices, clients, products, and payments against a real in-memory MongoDB replica set (required for transactions). Unit tests cover invoice calculation logic.
+
+**Performance optimizations applied:**
+- bcrypt work factor reduced to 1 round in tests (~100× faster per user creation)
+- External services mocked globally: Cloudinary, Resend
+- File upload tests use in-memory `Buffer` instead of disk reads to avoid socket EPIPE
+- Factories resolve shared dependencies (`businessId`, `createdBy`) together to avoid phantom DB writes
+- `createInvoicePayload` creates products and client in parallel via `Promise.all`
+- Vitest runs with `isolate: false` + `pool: forks` — single module registry, native addon safe
+
+---
+
 ## Project Status
 
-Functional. Known gaps before production use:
-
-- No integration tests — Vitest + Supertest is the next priority
-- Product image update route is not implemented — `removeOnCloudinary` is wired for user avatar and business logo replacement only
+Functional and feature-complete for the core invoicing workflow.
 
 ---
 

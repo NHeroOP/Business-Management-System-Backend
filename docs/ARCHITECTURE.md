@@ -5,12 +5,13 @@
 ```
 Client
   │
-  ├── /api/v1/auth/*          verifyJWT (select routes) → Controller
-  ├── /api/v1/users/*         verifyJWT → Controller
-  ├── /api/v1/businesses/*    verifyJWT → Controller           (no resolveWorkspace — uses :businessId param)
-  └── /api/v1/{domain}/*      verifyJWT → resolveWorkspace → requireRole(roles) → Controller → Service → MongoDB
-                                                                                                         ↓
-                                                                                               Cloudinary / Resend
+  ├── /api/v1/auth/*              verifyJWT (select routes) → Controller
+  ├── /api/v1/users/*             verifyJWT → Controller
+  ├── /api/v1/businesses          verifyJWT → Controller           (POST create — no workspace)
+  ├── /api/v1/businesses/current  verifyJWT → resolveWorkspace → requireRole → Controller
+  └── /api/v1/{domain}/*          verifyJWT → resolveWorkspace → requireRole(roles) → Controller → Service → MongoDB
+                                                                                                           ↓
+                                                                                                 Cloudinary / Resend
 ```
 
 ## Middleware Chain
@@ -21,7 +22,7 @@ Client
 | `resolveWorkspace` | `workspace.middleware.ts` | `x-business-id` header + `req.user._id` | `req.workspace` | 400 / 403 |
 | `requireRole(roles)` | `rbac.middleware.ts` | `req.workspace.role` | — | 403 |
 
-Business routes (`/businesses/:businessId`) skip `resolveWorkspace` — the path param provides business context directly.
+Business routes (`POST /businesses`) skip `resolveWorkspace` — creating a new business doesn't require an existing workspace. The `/businesses/current` and `/businesses/current/logo` routes use `resolveWorkspace` to identify the active business from the `x-business-id` header.
 
 ### TypeScript Request Augmentation
 
@@ -241,7 +242,5 @@ PAYMENT_STATUS   → SUCCESS | PENDING | FAILED
 
 | Issue | Impact |
 |-------|--------|
-| `helmet` imported after first use in `app.ts` | Works at runtime due to hoisting but misleading |
 | Product image update route not implemented | `removeOnCloudinary` is wired for avatar and logo only; product image replacement is out of scope for the current API |
 | `generateInvoicePdf` uses `process.cwd()` for template path | Breaks if server is not started from project root |
-| No integration tests | Cannot verify transactional correctness automatically |
