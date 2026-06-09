@@ -27,6 +27,20 @@ export const createPayment = async (
     throw new ApiError(400, "Invoice ID, amount and createdBy are required");
   }
 
+  const invoice = await Invoice.findOne({
+    _id: invoiceId,
+    businessId,
+    isArchived: false,
+  })
+
+  if (!invoice) {
+    throw new ApiError(404, "Invoice not found ");
+  }
+
+  if (invoice.status === INVOICE_STATUS.PAID) {
+    throw new ApiError(400, "Invoice has already been paid");
+  }
+
   let payment: IPaymentDocument | undefined;
 
   const session = await startSession();
