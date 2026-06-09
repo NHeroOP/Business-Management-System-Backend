@@ -84,16 +84,16 @@ export const createInvoice = async (
     }
   ]
 
-  const client = await createClient({
+  const client = overrides.client || (await createClient({
     businessId,
     createdBy,
-  });
+  }))._id;
 
   return await Invoice.create({
     ...overrides,
     businessId,
     createdBy,
-    client: client._id,
+    client,
     items,
     invoiceNumber: "INV-0001",
     subtotal: items.reduce((acc, item) => acc + item.total, 0),

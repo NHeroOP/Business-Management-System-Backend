@@ -11,7 +11,7 @@ import {
   createInvoicePayload,
 } from "@tests/factories/index.js";
 
-describe("POST /products", () => {
+describe("POST /invoices", () => {
   let agent: ReturnType<typeof request.agent>;
   let user: IUserDocument; 
   let business: IBusinessDocument;
