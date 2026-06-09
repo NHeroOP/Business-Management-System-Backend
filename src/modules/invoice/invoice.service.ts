@@ -19,6 +19,7 @@ import { escapeRegex } from "@/shared/utils/escapeRegex.js";
 import {
   allowedInvoiceSortFields,
   INVOICE_SENT_EMAIL_TEMPLATE_ID,
+  INVOICE_STATUS,
   type InvoiceStatus
 } from "@/consts.js";
 
@@ -354,6 +355,11 @@ export const changeInvoiceStatus = async ({
   }
 
   invoice.status = status;
+
+  if (invoice.status === INVOICE_STATUS.PAID) {
+    invoice.paidAt = new Date();
+  }
+
   await invoice.save();
 
   if ( status === "SENT" && invoice.client?.email) {
