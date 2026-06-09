@@ -2,14 +2,13 @@ import request from "supertest";
 import { describe, it, expect, beforeEach } from "vitest";
 
 import { app } from "@/app.js";
-import { BUSINESS_ROLE, INVOICE_STATUS } from "@/consts.js";
+import { INVOICE_STATUS } from "@/consts.js";
 import type { IUserDocument } from "@/modules/user/User.model.js";
 import type { IClientDocument } from "@/modules/client/Client.model.js";
 import type { IBusinessDocument } from "@/modules/business/Business.model.js";
 import { Invoice, type IInvoiceDocument } from "@/modules/invoice/Invoice.model.js";
 import {
   createBusiness,
-  createBusinessMember,
   createClient,
   createInvoice,
   createUser,
@@ -27,11 +26,6 @@ describe("PATCH /invoices/:id/status", () => {
     user = await createUser();
     business = await createBusiness({
       createdBy: user._id,
-    })
-    await createBusinessMember({
-      userId: user._id,
-      businessId: business._id,
-      role: BUSINESS_ROLE.OWNER
     })
     client = await createClient({
       businessId: business._id,
@@ -69,11 +63,6 @@ describe("PATCH /invoices/:id/status", () => {
     const anotherBusiness = await createBusiness({
       createdBy: user._id,
     });
-    await createBusinessMember({
-      userId: user._id,
-      businessId: anotherBusiness._id,
-      role: BUSINESS_ROLE.OWNER
-    })
 
     const res = await agent.patch(`/api/v1/invoices/${invoice._id.toString()}/status`)
       .set({ "x-business-id": anotherBusiness._id.toString() })

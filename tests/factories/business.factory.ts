@@ -3,6 +3,8 @@ import slugify from "slugify";
 import { faker } from '@faker-js/faker';
 import { Business, type IBusinessDocument } from "@/modules/business/Business.model.js"
 import { createUser } from "./user.factory.js";
+import { createBusinessMember } from "./business-member.factory.js";
+import { BUSINESS_ROLE } from "@/consts.js";
 
 
 const createSlug = (name: string) => {
@@ -31,11 +33,19 @@ export const createBusiness = async (
   const createdBy = overriddenCreatedBy || (await createUser())._id;
   const payload = createBusinessPayload();
   const slug = createSlug(payload.name);
-  return await Business.create({
+  const business = await Business.create({
     slug,
     createdBy,
     ...payload,
     ...restOverrides,
   });
-}
+
+  await createBusinessMember({
+    userId: createdBy,
+    businessId: business._id,
+    role: BUSINESS_ROLE.OWNER,
+  })
+
+  return business;
+} 
 

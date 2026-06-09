@@ -2,13 +2,11 @@ import request from "supertest";
 import { describe, it, expect, beforeEach } from "vitest";
 
 import { app } from "@/app.js";
-import { BUSINESS_ROLE } from "@/consts.js";
 import type { IUserDocument } from "@/modules/user/User.model.js";
 import type { IBusinessDocument } from "@/modules/business/Business.model.js";
 import {
   createUser,
   createBusiness,
-  createBusinessMember,
   createClient,
 } from "@tests/factories/index.js";
 import { Client } from "@/modules/client/Client.model.js";
@@ -22,11 +20,6 @@ describe("PATCH /clients/:id", () => {
     agent = request.agent(app);
     user = await createUser();
     business = await createBusiness({ createdBy: user._id });
-    await createBusinessMember({
-      userId: user._id,
-      businessId: business._id,
-      role: BUSINESS_ROLE.OWNER
-    })
 
     await agent.post("/api/v1/auth/login")
       .send({ identifier: user.email, password: "password123" })

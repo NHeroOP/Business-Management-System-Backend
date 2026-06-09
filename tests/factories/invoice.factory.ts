@@ -5,17 +5,13 @@ import { createProduct } from "./product.factory.js";
 import { createUser } from "./user.factory.js";
 import { createBusinessMember } from "./business-member.factory.js";
 import { BUSINESS_ROLE } from "@/consts.js";
+import { faker } from "@faker-js/faker";
 
 export const createInvoicePayload = async () => {
   const user = await createUser();
   const business = await createBusiness({
     createdBy: user._id,
   });
-  await createBusinessMember({
-    userId: user._id,
-    businessId: business._id,
-    role: BUSINESS_ROLE.OWNER
-  })
   const product1 = await createProduct({
     businessId: business._id,
     createdBy: user._id,
@@ -95,7 +91,7 @@ export const createInvoice = async (
     createdBy,
     client,
     items,
-    invoiceNumber: "INV-0001",
+    invoiceNumber: `INV-${faker.number.int({ min: 1000, max: 9999 })}`,
     subtotal: items.reduce((acc, item) => acc + item.total, 0),
     total: items.reduce((acc, item) => acc + item.total, 0),
   })
