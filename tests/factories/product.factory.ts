@@ -19,8 +19,19 @@ export const createProductPayload = () => ({
 export const createProduct = async(
   overrides: Partial<IProduct> = {}
 ) => {
-  const createdBy = overrides.createdBy || (await createUser())._id;
-  const businessId = overrides.businessId || (await createBusiness())._id;
+  let createdBy = overrides.createdBy;
+  let businessId = overrides.businessId;
+
+  if (!createdBy && !businessId) {
+    const user = await createUser();
+    const business = await createBusiness({ createdBy: user._id });
+    createdBy = user._id;
+    businessId = business._id;
+  } else {
+    createdBy = createdBy || (await createUser())._id;
+    businessId = businessId || (await createBusiness({ createdBy }))._id;
+  }
+
   return await Product.create({
     ...createProductPayload(),
     ...overrides,

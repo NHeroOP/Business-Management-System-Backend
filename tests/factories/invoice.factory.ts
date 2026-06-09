@@ -3,8 +3,6 @@ import { createBusiness } from "./business.factory.js";
 import { createClient } from "./client.factory.js";
 import { createProduct } from "./product.factory.js";
 import { createUser } from "./user.factory.js";
-import { createBusinessMember } from "./business-member.factory.js";
-import { BUSINESS_ROLE } from "@/consts.js";
 import { faker } from "@faker-js/faker";
 
 export const createInvoicePayload = async () => {
@@ -12,29 +10,12 @@ export const createInvoicePayload = async () => {
   const business = await createBusiness({
     createdBy: user._id,
   });
-  const product1 = await createProduct({
-    businessId: business._id,
-    createdBy: user._id,
-  });
-  const product2 = await createProduct({
-    businessId: business._id,
-    createdBy: user._id,
-  });
 
-  const items = [
-    {
-      productId: product1._id,
-      quantity: 3,
-    }, {
-      productId: product2._id,
-      quantity: 2,
-    }
-  ]
-
-  const client = await createClient({
-    businessId: business._id,
-    createdBy: user._id,
-  });
+  const [product1, product2, client] = await Promise.all([
+    createProduct({ businessId: business._id, createdBy: user._id }),
+    createProduct({ businessId: business._id, createdBy: user._id }),
+    createClient({ businessId: business._id, createdBy: user._id }),
+  ]);
 
   return {
     user,
@@ -42,7 +23,10 @@ export const createInvoicePayload = async () => {
     client,
     payload: {
       clientId: client._id,
-      items,
+      items: [
+        { productId: product1._id, quantity: 3 },
+        { productId: product2._id, quantity: 2 },
+      ],
     }
   }
 }

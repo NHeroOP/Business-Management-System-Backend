@@ -12,6 +12,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: './tests/setup/vitest.setup.ts',
-    isolate: true,
+    isolate: false,
+    pool: "forks",
   },
 });

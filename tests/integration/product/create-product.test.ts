@@ -1,5 +1,5 @@
 import request from "supertest";
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 
 import { app } from "@/app.js";
 import type { IUserDocument } from "@/modules/user/User.model.js";
@@ -21,21 +21,24 @@ describe("POST /products", () => {
     business = await createBusiness({ createdBy: user._id });
   })
 
+
   const endpoint = "/api/v1/products";
+
 
   it("should create product", async () => {
     await agent.post("/api/v1/auth/login")
       .send({ identifier: user.email, password: "password123" })
 
     const payload = createProductPayload();
-  
+    const dummyBuffer = Buffer.from("fake image data");
+
     const res = await agent.post(endpoint)
       .set({ "x-business-id": business._id.toString() })
       .field("name", payload.name)
       .field("price", payload.price)
       .field("type", payload.type)
       .field("stockQuantity", payload.stockQuantity)
-      .attach("imageUrl", "tests/fixtures/product.jpg");
+      .attach("imageUrl", dummyBuffer, "product.jpg");
     
     expect(res.status).toBe(201);
     expect(res.body).toHaveProperty("data");
@@ -48,13 +51,14 @@ describe("POST /products", () => {
       .send({ identifier: anotherUser.email, password: "password123" })
     
     const payload = createProductPayload();
+    const dummyBuffer = Buffer.from("fake image data2");
     const res = await agent.post(endpoint)
       .set({ "x-business-id": business._id.toString() })
       .field("name", payload.name)
       .field("price", payload.price)
       .field("type", payload.type)
       .field("stockQuantity", payload.stockQuantity)
-      .attach("imageUrl", "tests/fixtures/product.jpg");
+      .attach("imageUrl", dummyBuffer, "product2.jpg");
     
     expect(res.status).toBe(403);
   })

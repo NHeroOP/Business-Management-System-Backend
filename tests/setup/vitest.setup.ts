@@ -3,6 +3,7 @@ import { connectTestDatabase, clearDatabase, closeDatabase } from "./database.js
 
 import "@tests/mocks/cloudinary.mock.js";
 import "@tests/mocks/resend.mock.js";
+import "@tests/mocks/bcrypt.mock.js";
 
 beforeAll(async () => {
   await connectTestDatabase();
