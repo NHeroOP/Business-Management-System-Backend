@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 
 import ENV from "./env.js";
 import passport from "./shared/config/passport.js";
+import { ApiResponse } from "./shared/utils/ApiResponse.js";
 import { errorHandler } from "./shared/middlewares/errorHandler.js";
 import { globalLimiter } from "./shared/middlewares/rateLimit.middleware.js";
 
@@ -55,6 +56,12 @@ import businessMemberRouter from "./modules/business-member/businessMember.route
 
 
 app.use(globalLimiter);
+
+app.get("/api/v1/health", (_req, res) => {
+  res.status(200).json(new ApiResponse(
+    200, {}, "API is healthy"
+  ));
+});
 
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/users", userRouter);
