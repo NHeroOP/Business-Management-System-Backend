@@ -53,6 +53,7 @@ import paymentRouter from "./modules/payment/payment.route.js";
 import productRouter from "./modules/product/product.route.js";
 import businessRouter from "./modules/business/business.route.js";
 import businessMemberRouter from "./modules/business-member/businessMember.route.js";
+import analyticsRouter from "./modules/analytics/analytics.route.js";
 
 
 app.use(globalLimiter);
@@ -71,5 +72,6 @@ app.use("/api/v1/payments", paymentRouter);
 app.use("/api/v1/products", productRouter);
 app.use("/api/v1/businesses", businessRouter);
 app.use("/api/v1/business-members", businessMemberRouter);
+app.use("/api/v1/analytics", analyticsRouter);
 
 app.use(errorHandler);
