@@ -8,12 +8,14 @@ import ENV from "@/env.js";
 import type { IInvoice } from "./Invoice.model.js";
 import { ApiError } from "@/shared/utils/ApiError.js";
 
+const dirName = import.meta.dirname;
+
 export const createPdf = async (
   invoice: PopulatedDoc<IInvoice>,
 ): Promise<Uint8Array> => {
   const templatePath = path.join(
-    process.cwd(),
-    "src/modules/invoice/templates/invoice.hbs",
+    dirName,
+    "templates/invoice.hbs",
   );
 
   const source = await fs.readFile(templatePath, "utf-8");
