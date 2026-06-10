@@ -22,6 +22,7 @@ One `User` can be a member of many `Business`es. Each `BusinessMember` record ca
 
 | Field | Type | Notes |
 |-------|------|-------|
+| `name` | String | Required |
 | `username` | String | Unique, indexed, lowercase |
 | `email` | String | Unique, indexed, lowercase |
 | `password` | String | bcrypt hashed; absent for Google-only accounts |
@@ -32,6 +33,8 @@ One `User` can be a member of many `Business`es. Each `BusinessMember` record ca
 | `passwordResetToken` | String | SHA-256 hash of raw token |
 | `passwordResetTokenExpiry` | Date | 10-minute window |
 | `isVerified` | Boolean | Default `false` |
+| `lastLoginAt` | Date | Optional; updated on login |
+| `metadata` | Mixed | Reserved for extensibility |
 | `isArchived` | Boolean | Soft delete |
 
 Instance methods: `generateAccessToken()`, `generateRefreshToken()`, `isPasswordCorrect(password)`  
@@ -62,10 +65,10 @@ Pre-save hook: bcrypt hashes `password` on modification.
 | `businessId` | ObjectId | ref: Business, indexed |
 | `userId` | ObjectId | ref: User, indexed |
 | `role` | `OWNER \| ADMIN \| EMPLOYEE` | Default `EMPLOYEE` |
-| `permissions` | String[] | Reserved for fine-grained control |
+| `permissions` | String[] | Reserved for fine-grained control; default `[]` |
 | `isArchived` | Boolean | Soft delete (inactive member) |
 
-Compound unique index: `{ businessId, userId }` — one active membership per user per business.
+Compound unique index: `{ businessId, userId }` — one membership record per user per business.
 
 ---
 
@@ -119,13 +122,14 @@ Compound unique index: `{ businessId, userId }` — one active membership per us
 | `notes` | String | Optional |
 | `createdBy` | ObjectId | ref: User |
 | `paidAt` | Date | Set on payment closure |
+| `metadata` | Mixed | Reserved for extensibility |
 | `isArchived` | Boolean | Soft delete |
 
 **IInvoiceItem** (embedded subdocument, no `_id`):
 
 | Field | Notes |
 |-------|-------|
-| `productId` | Retained for traceability only — never used to re-derive pricing |
+| `productId` | Optional; retained for traceability only — never used to re-derive pricing |
 | `name` | Snapshot at creation time |
 | `price` | Snapshot at creation time |
 | `quantity` | — |
@@ -146,6 +150,7 @@ Compound unique index: `{ businessId, userId }` — one active membership per us
 | `notes` | String | Optional |
 | `paidAt` | Date | Default: now |
 | `createdBy` | ObjectId | ref: User |
+| `metadata` | Mixed | Reserved for extensibility |
 | `isArchived` | Boolean | Soft delete |
 
 ---
@@ -193,3 +198,4 @@ All collections share:
 - `isArchived: boolean` (default `false`) — soft delete; all queries filter `{ isArchived: false }`
 - `timestamps: true` — Mongoose adds `createdAt`, `updatedAt`
 - `businessId` on all tenant-scoped documents — every query includes tenant isolation at the DB layer
+- `metadata: Mixed` on User, Invoice, and Payment — reserved for future extensibility; not exposed in API responses

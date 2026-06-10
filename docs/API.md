@@ -205,7 +205,42 @@ All routes require `verifyJWT + resolveWorkspace + requireRole(ALL)`.
 }
 ```
 
-When `amount` equals `invoice.total`, invoice status is atomically updated to `PAID` in the same MongoDB session.
+When `amount` equals `invoice.total` (compared as integers via `Math.round(x * 100)`), invoice status is atomically updated to `PAID` in the same MongoDB session.
+
+---
+
+## Analytics — `/api/v1/analytics`
+
+Requires `verifyJWT + resolveWorkspace + requireRole(OWNER, ADMIN)`.
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/` | Returns business-level stats |
+
+**Response:**
+```json
+{
+  "statusCode": 200,
+  "data": {
+    "totalClients": 12,
+    "totalProducts": 8,
+    "totalServices": 3,
+    "totalInvoices": 45,
+    "totalPayments": 30,
+    "paidInvoices": 28,
+    "revenue": 150000
+  },
+  "success": true
+}
+```
+
+---
+
+## Health Check
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/api/v1/health` | No auth required |
 
 ---
 

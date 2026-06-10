@@ -40,6 +40,8 @@ Three roles with decreasing privilege: `OWNER > ADMIN > EMPLOYEE`.
 
 `requireRole` is a composable factory — role is resolved per-request from `BusinessMember`, not the JWT payload. Role changes take effect immediately without re-issuing tokens.
 
+The analytics endpoint is restricted to `OWNER` and `ADMIN` only.
+
 ### Multi-Tenancy Isolation
 
 Every business-scoped request validates `x-business-id` against `BusinessMember`:
@@ -57,7 +59,7 @@ A valid JWT without membership in the requested business receives `403`. All dow
 - **Helmet** sets `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, and other security headers globally
 - `strictTransportSecurity` (HSTS) enabled only in production (`NODE_ENV === "production"`)
 - CORS configured with explicit `origin` from `CORS_ORIGIN` env var with `credentials: true`
-- Rate limiting via `express-rate-limit` on all routes
+- Rate limiting via `express-rate-limit` applied globally to all routes
 
 ---
 
@@ -80,7 +82,7 @@ User-supplied strings used in MongoDB `$regex` queries are escaped with a dedica
 ## File Uploads
 
 - Multer writes files to `public/temp/` temporarily; temp files are deleted after processing regardless of success or failure
-- Filenames include a `Date.now()` prefix to prevent concurrent uploads from colliding in the temp directory
+- Filenames use a `Date.now()` prefix to prevent concurrent uploads from colliding in the temp directory
 - Only the Cloudinary URL and `publicId` are stored in the database
 
 ---
@@ -90,34 +92,40 @@ User-supplied strings used in MongoDB `$regex` queries are escaped with a dedica
 - **Soft deletes** — `isArchived: true` across all collections; no data is permanently deleted
 - **MongoDB transactions** — invoice number generation + document creation and payment recording + invoice closure both use sessions with commit/abort
 - **Price snapshots** — invoice item totals are immutable after creation
-- **Env validation** — all required environment variables are validated at startup via a Zod schema; the process exits immediately if any are missing
+- **Float-safe payment comparison** — `Math.round(amount * 100) === Math.round(invoice.total * 100)` avoids floating-point precision bugs when checking full payment
+- **Env validation** — all required environment variables are validated at startup via a Zod schema in `src/env.ts`; the process exits immediately if any are missing or malformed
 
 ---
 
-## Required Environment Variables
+## Environment Variables
 
-The following have no defaults and must be set:
+### Required (no defaults — process exits at startup if missing)
 
 ```
 MONGODB_URI              Replica set URI — transactions require a replica set
 ACCESS_TOKEN_SECRET      JWT signing key for access tokens (min 32 chars)
 REFRESH_TOKEN_SECRET     JWT signing key for refresh tokens (min 32 chars)
-CLOUDINARY_CLOUD_NAME    
-CLOUDINARY_API_KEY       
-CLOUDINARY_API_SECRET    
+CLOUDINARY_CLOUD_NAME
+CLOUDINARY_API_KEY
+CLOUDINARY_API_SECRET
 RESEND_API_KEY           Transactional email
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
 ```
 
-Optional:
+### Optional (defaults shown)
 
 ```
-PORT                     Default: 3000
-CORS_ORIGIN              Default: *
-ACCESS_TOKEN_EXPIRY      Default: 1d
-REFRESH_TOKEN_EXPIRY     Default: 15d
-GOOGLE_CLIENT_ID         
-GOOGLE_CLIENT_SECRET     
-GOOGLE_CALLBACK_URL      Default: http://localhost:3000/api/v1/auth/google/callback
+PORT=3000
+NODE_ENV=development
+BASE_URL=http://localhost:3000
+CORS_ORIGIN=*
+ACCESS_TOKEN_EXPIRY=1d
+REFRESH_TOKEN_EXPIRY=15d
+GOOGLE_CALLBACK_URL=http://localhost:3000/api/v1/auth/google/callback
+PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ```
+
+In Docker, `PUPPETEER_EXECUTABLE_PATH` is set to `/usr/bin/chromium` by the `Dockerfile`.
 
 See `.env.example` for the full template.

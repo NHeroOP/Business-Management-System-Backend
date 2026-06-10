@@ -9,6 +9,7 @@ Client
   ├── /api/v1/users/*             verifyJWT → Controller
   ├── /api/v1/businesses          verifyJWT → Controller           (POST create — no workspace)
   ├── /api/v1/businesses/:id      verifyJWT → Controller           (no workspace — uses :businessId param)
+  ├── /api/v1/analytics/*         verifyJWT → resolveWorkspace → requireRole(OWNER,ADMIN) → Controller
   └── /api/v1/{domain}/*          verifyJWT → resolveWorkspace → requireRole(roles) → Controller → Service → MongoDB
                                                                                                            ↓
                                                                                                  Cloudinary / Resend
@@ -45,7 +46,7 @@ No unsafe casts anywhere in the middleware chain.
 
 ## Module Pattern
 
-All 8 domain modules follow the same 4-layer structure:
+All 9 domain modules follow the same layered structure:
 
 ```
 src/modules/{domain}/
@@ -55,6 +56,11 @@ src/modules/{domain}/
   {domain}.controller.ts  Parse request → call service → send ApiResponse
   {domain}.route.ts       Route definitions + middleware chain composition
 ```
+
+The `invoice` module has two additional files:
+
+- `invoice.helper.ts` — pure calculation helpers (total computation, item merging)
+- `invoice.delivery.ts` — email delivery via Resend, separated from core invoice logic
 
 Controllers call `schema.parse(req.body)` / `schema.parse(req.params)` directly — no separate validation middleware. Zod-inferred types (`z.infer<typeof schema>`) are the service input types, enforcing the controller → service contract at compile time.
 
@@ -75,6 +81,20 @@ export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
 ```
 
 Stack traces are included only in `NODE_ENV=development`.
+
+## Startup & Environment Validation
+
+`src/env.ts` validates all environment variables at startup using a Zod schema. If any required variable is missing or malformed, the process exits immediately with a clear error — no silent failures at runtime:
+
+```typescript
+const parsed = envSchema.safeParse(process.env);
+if (!parsed.success) {
+  console.error("Invalid environment variables:", z.prettifyError(parsed.error));
+  process.exit(1);
+}
+```
+
+`src/index.ts` loads dotenv, then imports `env.ts` (validation runs), then connects to MongoDB, then starts the server.
 
 ## Authentication Flows
 
@@ -185,6 +205,8 @@ Product price changes after creation have no effect on historical records.
 
 ### Atomic Payment + Invoice Closure
 
+Float comparison uses integer arithmetic to avoid floating-point precision bugs:
+
 ```typescript
 const session = await startSession();
 session.startTransaction();
@@ -201,6 +223,23 @@ try {
 } finally {
   await session.endSession();
 }
+```
+
+### Analytics Aggregation
+
+The analytics service runs parallel `countDocuments` queries and one `$group` aggregation across five collections:
+
+```typescript
+const [totalClients, totalProducts, totalServices, totalInvoices, totalPayments, paidInvoices, revenue] =
+  await Promise.all([
+    Client.countDocuments({ businessId, isArchived: false }),
+    Product.countDocuments({ businessId, type: PRODUCT_TYPE.PRODUCT, isArchived: false }),
+    Product.countDocuments({ businessId, type: PRODUCT_TYPE.SERVICE, isArchived: false }),
+    Invoice.countDocuments({ businessId, isArchived: false }),
+    Payment.countDocuments({ businessId, isArchived: false }),
+    Invoice.countDocuments({ businessId, isArchived: false, status: INVOICE_STATUS.PAID }),
+    Payment.aggregate([{ $match: { businessId, isArchived: false } }, { $group: { _id: null, totalRevenue: { $sum: "$amount" } } }]),
+  ]);
 ```
 
 ### Aggregation Pipeline Search
@@ -231,7 +270,7 @@ User-supplied search strings are escaped before use in `$regex` to prevent ReDoS
 
 ## Constants
 
-`src/consts.ts` is the canonical source for all enums:
+`src/consts.ts` is the canonical source for all enums and module-level constants:
 
 ```
 BUSINESS_ROLE    → OWNER | ADMIN | EMPLOYEE
@@ -239,4 +278,9 @@ PRODUCT_TYPE     → PRODUCT | SERVICE
 INVOICE_STATUS   → DRAFT | SENT | PAID | OVERDUE | CANCELLED
 PAYMENT_METHOD   → CASH | UPI | BANK | CARD
 PAYMENT_STATUS   → SUCCESS | PENDING | FAILED
+
+VERIFICATION_EMAIL_TEMPLATE_ID   → Resend template for email verification
+INVOICE_SENT_EMAIL_TEMPLATE_ID   → Resend template for invoice delivery
 ```
+
+`allowedInvoiceSortFields` is also exported from `consts.ts` to keep sort-field validation in one place.
