@@ -1,29 +1,34 @@
 import path from "node:path";
 import fs from "node:fs/promises";
-import puppeteer from "puppeteer";
 import Handlebars from "handlebars";
+import puppeteer from "puppeteer-core";
 import type { PopulatedDoc } from "mongoose";
 
+import ENV from "@/env.js";
 import type { IInvoice } from "./Invoice.model.js";
 import { ApiError } from "@/shared/utils/ApiError.js";
 
 export const createPdf = async (
-  invoice: PopulatedDoc<IInvoice>
-): Promise<Uint8Array<ArrayBufferLike>> => {
-    const templatePath = path.join(
+  invoice: PopulatedDoc<IInvoice>,
+): Promise<Uint8Array> => {
+  const templatePath = path.join(
     process.cwd(),
     "src/modules/invoice/templates/invoice.hbs",
   );
 
-  const source = await fs.readFile(
-    templatePath,
-    "utf-8",
-  );
+  const source = await fs.readFile(templatePath, "utf-8");
   const template = Handlebars.compile(source);
-
   const html = template(invoice);
 
-  const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+  const browser = await puppeteer.launch({
+    executablePath: ENV.PUPPETEER_EXECUTABLE_PATH,
+    headless: true,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+    ],
+  });
 
   try {
     const page = await browser.newPage();
@@ -48,4 +53,4 @@ export const createPdf = async (
   } finally {
     await browser.close();
   }
-}
+};

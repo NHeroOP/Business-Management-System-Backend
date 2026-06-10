@@ -25,6 +25,8 @@ export const envSchema = z.object({
   CLOUDINARY_API_SECRET: z.string(),
 
   RESEND_API_KEY: z.string(),
+
+  PUPPETEER_EXECUTABLE_PATH: z.string().default("/usr/bin/chromium-browser"),
 });
 
 const parsed = envSchema.safeParse(process.env);
