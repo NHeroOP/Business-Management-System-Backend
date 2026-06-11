@@ -24,6 +24,7 @@
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^8.5.0",
     "@scalar/express-api-reference": "^0.10.3",
+    "@types/serve-favicon": "^2.5.7",
     "@types/supertest": "^7.2.0",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.10.0",
@@ -42,6 +43,7 @@
     "passport-google-oauth20": "^2.0.0",
     "puppeteer-core": "^25.1.0",
     "resend": "^6.12.3",
+    "serve-favicon": "^2.5.1",
     "slugify": "^1.6.9",
     "zod": "^4.4.3"
   },

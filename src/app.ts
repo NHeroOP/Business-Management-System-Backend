@@ -1,6 +1,8 @@
+import path from "path";
 import cors from "cors";
 import helmet from "helmet";
 import express from "express";
+import favicon from "serve-favicon";
 import cookieParser from "cookie-parser";
 import { apiReference } from "@scalar/express-api-reference";
 
@@ -11,8 +13,9 @@ import { ApiResponse } from "./shared/utils/ApiResponse.js";
 import { errorHandler } from "./shared/middlewares/errorHandler.js";
 import { globalLimiter } from "./shared/middlewares/rateLimit.middleware.js";
 
-
+const dirname = import.meta.dirname
 export const app = express();
+app.use(favicon(path.join(dirname, '../public', 'favicon.ico')));
 app.use(
   cors({
     origin: ENV.CORS_ORIGIN,
@@ -62,6 +65,10 @@ app.use("/docs", (_req, res, next) => {
 app.use(
   "/docs",
   apiReference({
+    metaData: {
+      title: "Multi Tenant Business Management API Documentation",
+      description: "Comprehensive documentation for the Multi Tenant Business Management API, detailing all available endpoints, request/response schemas, and authentication methods.",
+    },
     spec: {
       content: openApiSpec(),
     }
