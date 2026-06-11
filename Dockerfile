@@ -65,7 +65,7 @@ COPY --from=prerelease /usr/src/app/dist ./dist
 COPY --from=prerelease \
 /usr/src/app/src/modules/invoice/templates \
   ./dist/src/modules/invoice/templates
-
+COPY --from=prerelease /usr/src/app/public /public
 
 # run the app
 USER bun
