@@ -2,6 +2,7 @@ import { registry } from "./registry.js";
 import { OpenApiGeneratorV3 } from "@asteasolutions/zod-to-openapi";
 
 import "@/modules/auth/auth.docs.js";
+import "@/modules/business/business.docs.js";
 
 
 export const openApiSpec = () => {
@@ -19,11 +20,11 @@ export const openApiSpec = () => {
 
     servers: [
       {
-        url: "http://localhost:3000",
+        url: "http://localhost:3000/api/v1",
         description: "Local Development",
       },
       {
-        url: "https://nhero-business-management.up.railway.app",
+        url: "https://nhero-business-management.up.railway.app/api/v1",
         description: "Production Server",
       }
     ],

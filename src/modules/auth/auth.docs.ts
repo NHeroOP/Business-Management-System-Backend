@@ -5,11 +5,12 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
 } from "./auth.validation.js";
+import { authSecurity } from "@/docs/common.js";
 
 
 registry.registerPath({
   method: "post",
-  path: "/api/v1/auth/register",
+  path: "/auth/register",
   tags: ["Auth"],
   summary: "Register a new user",
   description: "Creates a new user account.",
@@ -34,7 +35,7 @@ registry.registerPath({
 
 registry.registerPath({
   method: "post",
-  path: "/api/v1/auth/login",
+  path: "/auth/login",
   tags: ["Auth"],
   summary: "Login user",
   description: "Authenticates a user and returns access and refresh tokens.",
@@ -59,10 +60,10 @@ registry.registerPath({
 
 registry.registerPath({
   method: "post",
-  path: "/api/v1/auth/logout",
+  path: "/auth/logout",
   tags: ["Auth"],
   summary: "Logout user",
-  security: [{ bearerAuth: [] }],
+  security: authSecurity,
   responses: {
     200: {
       description: "User logged out successfully",
@@ -75,7 +76,7 @@ registry.registerPath({
 
 registry.registerPath({
   method: "post",
-  path: "/api/v1/auth/refresh-token",
+  path: "/auth/refresh-token",
   tags: ["Auth"],
   summary: "Refresh access token",
   description: "Uses a refresh token cookie or request body token to issue new tokens.",
@@ -91,7 +92,7 @@ registry.registerPath({
 
 registry.registerPath({
   method: "post",
-  path: "/api/v1/auth/forgot-password",
+  path: "/auth/forgot-password",
   tags: ["Auth"],
   summary: "Send password reset email",
   request: {
@@ -112,7 +113,7 @@ registry.registerPath({
 
 registry.registerPath({
   method: "post",
-  path: "/api/v1/auth/reset-password",
+  path: "/auth/reset-password",
   tags: ["Auth"],
   summary: "Reset user password",
   request: {
@@ -136,10 +137,10 @@ registry.registerPath({
 
 registry.registerPath({
   method: "get",
-  path: "/api/v1/auth/me",
+  path: "/auth/me",
   tags: ["Auth"],
   summary: "Get current user",
-  security: [{ bearerAuth: [] }],
+  security: authSecurity,
   responses: {
     200: {
       description: "Current user fetched successfully",
@@ -152,7 +153,7 @@ registry.registerPath({
 
 registry.registerPath({
   method: "get",
-  path: "/api/v1/auth/google",
+  path: "/auth/google",
   tags: ["Auth"],
   summary: "Start Google OAuth flow",
   responses: {
@@ -164,7 +165,7 @@ registry.registerPath({
 
 registry.registerPath({
   method: "get",
-  path: "/api/v1/auth/google/callback",
+  path: "/auth/google/callback",
   tags: ["Auth"],
   summary: "Google OAuth callback",
   responses: {

@@ -9,6 +9,13 @@ export const createBusinessSchema = z.object({
   description: z.string().optional()
 });
 
+export const createBusinessRequestSchema = createBusinessSchema.extend({
+  logoUrl: z.any().openapi({
+    type: "string",
+    format: "binary",
+  }),
+});
+
 export type CreateBusinessInput = z.infer<typeof createBusinessSchema>
 
 export const updateBusinessDetailsSchema = z.object({
