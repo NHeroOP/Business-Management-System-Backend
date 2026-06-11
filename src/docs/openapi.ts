@@ -1,0 +1,29 @@
+import { registry } from "./registry.js";
+import { OpenApiGeneratorV3 } from "@asteasolutions/zod-to-openapi";
+
+
+export const openApiSpec = () => {
+  const generator = new OpenApiGeneratorV3(
+    registry.definitions
+  );
+
+  return generator.generateDocument({
+    openapi: "3.0.0",
+    info: {
+      title: "Multi Tenant Business Management API",
+      version: "1.0.0",
+      description: "Open-source business management platform with clients, products, invoices, payments, analytics, PDF generation and email automation.",
+    },
+
+    servers: [
+      {
+        url: "http://localhost:3000",
+        description: "Local Development",
+      },
+      {
+        url: "https://nhero-business-management.up.railway.app",
+        description: "Production Server",
+      }
+    ],
+  });
+};
