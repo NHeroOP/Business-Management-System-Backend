@@ -20,6 +20,18 @@ export const workspaceProtectedRoute = {
   parameters: [workspaceHeader],
 };
 
+export const roleParam = [
+  {
+    in: "path",
+    name: "userId",
+    required: true,
+    schema: {
+      type: "string",
+    },
+    description: "ID of the user whose role is being updated",
+  } as const,
+];
+
 export const descriptions = {
   ownerOnly:
     "Requires OWNER role in the selected workspace.",

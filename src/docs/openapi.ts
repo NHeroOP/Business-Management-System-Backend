@@ -3,6 +3,7 @@ import { OpenApiGeneratorV3 } from "@asteasolutions/zod-to-openapi";
 
 import "@/modules/auth/auth.docs.js";
 import "@/modules/business/business.docs.js";
+import "@/modules/business-member/business-member.docs.js";
 
 
 export const openApiSpec = () => {
