@@ -1,7 +1,4 @@
 import * as z from "zod";
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
-
-extendZodWithOpenApi(z);
 
 export const registerSchema = z.object({
   username: z.string().min(4, "Username must be at least 4 characters"),

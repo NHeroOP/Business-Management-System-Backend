@@ -11,6 +11,20 @@ export const createProductSchema = z.object({
   category: z.string().optional(),
 });
 
+export const productImageUpdateSchema = z.object({
+  imageUrl: z.any().openapi({
+    type: "string",
+    format: "binary",
+  }).describe("New product image file"),
+});
+
+export const createProductRequestSchema = createProductSchema.extend({
+  imageUrl: z.any().openapi({
+    type: "string",
+    format: "binary",
+  }).describe("Product image file"),
+});
+
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 
 export const FindProductsQuerySchema = z.object({

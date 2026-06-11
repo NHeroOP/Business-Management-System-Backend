@@ -18,3 +18,11 @@ export const changePasswordSchema = z.object({
 });
 
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
+export const updateAvatarSchema = z.object({
+  avatarUrl: z.any().openapi({
+    type: "string",
+    format: "binary",
+    description: "Image file for the new avatar"
+  })
+});
