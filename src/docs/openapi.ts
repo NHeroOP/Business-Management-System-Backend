@@ -1,6 +1,8 @@
 import { registry } from "./registry.js";
 import { OpenApiGeneratorV3 } from "@asteasolutions/zod-to-openapi";
 
+import "@/modules/auth/auth.docs.js";
+
 
 export const openApiSpec = () => {
   const generator = new OpenApiGeneratorV3(

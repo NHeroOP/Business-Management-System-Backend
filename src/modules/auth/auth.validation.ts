@@ -1,11 +1,20 @@
 import * as z from "zod";
+import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 
+extendZodWithOpenApi(z);
 
 export const registerSchema = z.object({
   username: z.string().min(4, "Username must be at least 4 characters"),
   name: z.string().min(3, "Name must be at least 3 characters"),
   email: z.email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters")
+});
+
+export const registerRequestSchema = registerSchema.extend({
+  avatarUrl: z.any().openapi({
+    type: "string",
+    format: "binary",
+  }),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
