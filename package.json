@@ -22,6 +22,8 @@
   },
   "homepage": "https://github.com/NHeroOP/Business-Management-System-Backend#readme",
   "dependencies": {
+    "@scalar/express-api-reference": "^0.10.3",
+    "@asteasolutions/zod-to-openapi": "^8.5.0",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.10.0",
     "cookie-parser": "^1.4.7",
@@ -43,9 +45,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@asteasolutions/zod-to-openapi": "^8.5.0",
     "@faker-js/faker": "^10.4.0",
-    "@scalar/express-api-reference": "^0.10.3",
     "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",

@@ -62,10 +62,11 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 COPY --from=install /temp/prod/node_modules node_modules
 COPY --from=prerelease /usr/src/app/package.json .
 COPY --from=prerelease /usr/src/app/dist ./dist
+COPY --from=prerelease /usr/src/app/public ./public
 COPY --from=prerelease \
 /usr/src/app/src/modules/invoice/templates \
   ./dist/src/modules/invoice/templates
-COPY --from=prerelease /usr/src/app/public /public
+
 
 # run the app
 USER bun
