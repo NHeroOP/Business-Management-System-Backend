@@ -65,6 +65,7 @@ app.use("/docs", (_req, res, next) => {
 app.use(
   "/docs",
   apiReference({
+    theme: "bluePlanet",
     metaData: {
       title: "Multi Tenant Business Management API Documentation",
       description: "Comprehensive documentation for the Multi Tenant Business Management API, detailing all available endpoints, request/response schemas, and authentication methods.",
