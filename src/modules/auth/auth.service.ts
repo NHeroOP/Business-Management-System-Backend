@@ -28,30 +28,34 @@ export const registerUserService = async (payload: RegisterPayload) => {
     $or: [{ username }, { email }],
   });
 
-  if (!avatarLocalPath) {
-    throw new ApiError(400, "Avatar image is required");
+  // if (!avatarLocalPath) {
+  //   throw new ApiError(400, "Avatar image is required");
+  // }
+
+  let avatar;
+
+  if (avatarLocalPath) {
+    avatar = await uploadOnCloudinary(avatarLocalPath);
   }
 
   if (userExists) {
-    fs.unlinkSync(avatarLocalPath);
+    if (avatarLocalPath) fs.unlinkSync(avatarLocalPath);
     throw new ApiError(
       409,
       "User with the same username or email already exists",
     );
+    
   }
 
-  const avatar = await uploadOnCloudinary(avatarLocalPath);
-
-  if (!avatar) {
-    throw new ApiError(500, "Error while uploading avatar");
-  }
 
   const user = await User.create({
     name,
-    avatar: {
-      url: avatar.secure_url,
-      publicId: avatar.public_id,
-    },
+    ...(avatar && {
+      avatar: {
+        url: avatar.secure_url,
+        publicId: avatar.public_id,
+      }
+    }),
     email,
     password,
     username: username.toLowerCase(),
