@@ -53,7 +53,6 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
         {
           user: userData,
           accessToken,
-          refreshToken,
         },
         "User logged in successfully",
       ),
