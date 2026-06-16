@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import {
   createBusiness as createBusinessService,
   findBusinessById,
+  findUserBusinesses,
   updateBusinessDetails,
   updateBusinessLogo as updateBusinessLogoService
 } from "./business.service.js";
@@ -21,6 +22,14 @@ export const createBusiness = asyncHandler(async (req: Request, res: Response) =
 
   return res.status(201).json(
     new ApiResponse(201, business, "Business created successfully")
+  );
+});
+
+export const getUserBusinesses = asyncHandler(async (req: Request, res: Response) => { 
+  const businesses = await findUserBusinesses(req.user!._id);
+
+  return res.status(200).json(
+    new ApiResponse(200, businesses, "User businesses fetched successfully")
   );
 });
 

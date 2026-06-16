@@ -114,6 +114,49 @@ export const createBusiness = async ({
   return newBusiness;
 };
 
+export const findUserBusinesses = async (
+  userId: Types.ObjectId
+) => {
+  const ownedBusinesses = await Business.find({
+    createdBy: userId,
+    isArchived: false
+  }).select("name slug logo");
+
+
+  const cleanedOwnedBusinesses = ownedBusinesses.map(business => ({
+    _id: business._id,
+    name: business.name,
+    slug: business.slug,
+    logo: business.logo,
+    role: BUSINESS_ROLE.OWNER
+  }));
+
+  const memberBusinesses = await BusinessMember.find({
+    userId,
+    isArchived: false,
+    role: { $ne: BUSINESS_ROLE.OWNER },
+  }).populate<{
+    businessId: Pick<IBusinessDocument, "_id" | "name" | "slug" | "logo">
+  }>("role", {
+    path: "businessId",
+    select: "_id name slug logo"
+  });
+
+  const cleanedMemberBusinesses = memberBusinesses.map(member => {
+    const business = member.businessId;
+    return {
+      _id: business._id,
+      name: business.name,
+      slug: business.slug,
+      logo: business.logo,
+      role: member.role
+    }
+  })
+
+  const allBusinesses = [...cleanedOwnedBusinesses, ...cleanedMemberBusinesses];
+
+  return allBusinesses;
+}
 
 export const findBusinessById = async (
   businessId: Types.ObjectId | string,

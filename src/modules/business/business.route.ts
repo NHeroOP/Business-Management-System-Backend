@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import {
   createBusiness,
+  getUserBusinesses,
   getCurrentBusiness,
   updateBusiness,
   updateBusinessLogo,
@@ -17,7 +18,9 @@ const router = Router();
 
 router.use(verifyJWT);
 
-router.route("/").post(upload.single("logoUrl"), createBusiness);
+router.route("/")
+  .get(getUserBusinesses)
+  .post(upload.single("logoUrl"), createBusiness);
 
 router.use(resolveWorkspace);
 
