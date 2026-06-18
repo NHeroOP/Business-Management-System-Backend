@@ -89,6 +89,7 @@ export const changeUserPassword = async (
   }
 
   user.password = newPassword;
+  user.passwordChangedAt = new Date();
 
   await user.save();
 };

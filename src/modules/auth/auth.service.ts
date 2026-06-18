@@ -5,12 +5,14 @@ import jwt, { type JwtPayload } from "jsonwebtoken";
 
 import { User } from "../user/User.model.js";
 import { generateTokens, hashData } from "./auth.helper.js";
-import { PASSWORD_RESET_EMAIL_TEMPLATE_ID } from "./auth.const.js";
+import { PASSWORD_RESET_EMAIL_TEMPLATE_ID, VERIFICATION_EMAIL_TEMPLATE_ID } from "./auth.const.js";
 import type {
   RegisterPayload,
   LoginInput,
   RefreshTokenInput,
   ResetPasswordInput,
+  SendVerificationEmailInput,
+  VerifyVerificationCodeInput,
 } from "./auth.validation.js";
 
 import ENV from "@/env.js";
@@ -178,6 +180,78 @@ export const refreshAccessTokenService = async (
   };
 };
 
+export const sendVerficationEmail = async(
+  email: SendVerificationEmailInput
+) => {
+
+  const user = await User.findOne({ email, isArchived: false });
+
+  if (!user) {
+    throw new ApiError(200, "If email exists, a verification code will be sent");
+  }
+
+  const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedVerificationCode = hashData(verificationCode);
+  const verificationCodeExpiry = new Date(Date.now() + 10 * 60 * 1000);
+
+  user.verificationCode = hashedVerificationCode;
+  user.verificationCodeExpiry = verificationCodeExpiry;
+
+  await user.save({ validateBeforeSave: false });
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: "NHero <send@noreply.nhero.me>",
+      to: email,
+      subject: "Verification Code",
+      template: {
+        id: VERIFICATION_EMAIL_TEMPLATE_ID,
+        variables: {
+          OTP: verificationCode,
+        },
+      },
+    });
+
+    if (error) {
+      throw new ApiError(500, "Error while sending verification email");
+    }
+
+    return data;
+  } catch (error) {
+    throw new ApiError(500, "Error while sending verification email");
+  }
+}
+
+
+export const verifyVerificationCodeService = async (
+  { email, code }: VerifyVerificationCodeInput
+) => {
+  if (!email || !code) {
+    throw new ApiError(400, "Email and verification code are required");
+  }
+
+  const hashedCode = hashData(code);
+
+  const user = await User.findOneAndUpdate({
+    email,
+    verificationCodeExpiry: { $gt: new Date() },
+    verificationCode: hashedCode,
+    isArchived: false
+  }, {
+    $set: {
+      isVerified: true
+    },
+    $unset: {
+      verificationCode: 1,
+      verificationCodeExpiry: 1
+    }
+  });
+
+  if (!user) {
+    throw new ApiError(400, "Invalid email or verification code");
+  }
+}
+
 export const forgotPasswordService = async (email: string) => {
   if (!email) {
     throw new ApiError(400, "Email is required");
@@ -186,7 +260,7 @@ export const forgotPasswordService = async (email: string) => {
   const user = await User.findOne({ email, isArchived: false });
 
   if (!user) {
-    throw new ApiError(200, "If email exists, a password reset link will be sent");
+    throw new ApiError(200, "If email exists, verificaiton code will be sent");
   }
 
   const rawPasswordResetToken = crypto.randomBytes(32).toString("hex");
@@ -224,6 +298,7 @@ export const forgotPasswordService = async (email: string) => {
   }
 };
 
+
 export const resetPasswordService = async ({
   token,
   userId,
@@ -253,6 +328,7 @@ export const resetPasswordService = async ({
   }
 
   user.password = newPassword;
+  user.passwordChangedAt = new Date();
   user.passwordResetToken = undefined;
   user.passwordResetTokenExpiry = undefined;
 

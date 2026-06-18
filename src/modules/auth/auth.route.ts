@@ -10,6 +10,8 @@ import {
   refreshAccessToken,
   registerUser,
   resetPassword,
+  sendVerificationCode,
+  verifyVerificationCode,
 } from "./auth.controller.js";
 
 import { upload } from "@/shared/middlewares/multer.middleware.js";
@@ -22,6 +24,10 @@ router.route("/register").post(upload.single("avatarUrl"), registerUser);
 router.route("/login").post(loginLimiter, loginUser);
 router.route("/logout").post(verifyJWT, logoutUser);
 router.route("/refresh-token").post(refreshAccessToken);
+
+router.route("/verification-code/send").post(sendVerificationCode)
+router.route("/verification-code/verify").post(verifyVerificationCode)
+
 
 router.route("/forgot-password")
   .post(forgotPasswordLimiter, forgotPassword);

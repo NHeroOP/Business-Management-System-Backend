@@ -8,8 +8,10 @@ import {
   loginUserService,
   logoutUserService,
   refreshAccessTokenService,
+  sendVerficationEmail,
   registerUserService,
   resetPasswordService,
+  verifyVerificationCodeService,
 } from "./auth.service.js";
 import {
   forgotPasswordSchema,
@@ -17,6 +19,8 @@ import {
   refreshTokenSchema,
   registerSchema,
   resetPasswordSchema,
+  sendVerificationEmailSchema,
+  verifyVerificationCodeSchema,
 } from "./auth.validation.js";
 
 import { asyncHandler } from "@/shared/utils/asyncHandler.js";
@@ -94,6 +98,34 @@ export const refreshAccessToken = asyncHandler(
           "Access token refreshed successfully",
         ),
       );
+  },
+);
+
+export const sendVerificationCode = asyncHandler(
+  async (req: Request, res: Response) => {
+    const email = sendVerificationEmailSchema.parse(req.body.email);
+
+    await sendVerficationEmail(email);
+
+    return res.status(200).json(new ApiResponse(
+      200,
+      {},
+      "If email exists, verificaiton code will be sent"
+    ))
+  },
+);
+
+export const verifyVerificationCode = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { email, code } = verifyVerificationCodeSchema.parse(req.body);
+
+    await verifyVerificationCodeService({ email, code });
+
+    return res.status(200).json(new ApiResponse(
+      200,
+      {},
+      "Verification code verified successfully"
+    ))
   },
 );
 

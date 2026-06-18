@@ -25,6 +25,10 @@ export interface IUser {
 
   metadata?: Record<string, unknown>;
 
+  verificationCode?: string | undefined;
+  verificationCodeExpiry?: Date | undefined;
+
+  passwordChangedAt?: Date | undefined;
   passwordResetToken?: string | undefined;
   passwordResetTokenExpiry?: Date | undefined;
 
@@ -104,6 +108,10 @@ const userSchema = new Schema<IUser>(
       default: {},
     },
 
+    verificationCode: String,
+    verificationCodeExpiry: Date,
+
+    passwordChangedAt: Date,
     passwordResetToken: String,
     passwordResetTokenExpiry: Date
   },

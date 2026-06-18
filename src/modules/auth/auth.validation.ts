@@ -32,6 +32,15 @@ export type LoginInput = z.infer<typeof loginSchema>;
 
 export const refreshTokenSchema = z.string("Invalid refresh token")
 
+export const sendVerificationEmailSchema = z.email("Invalid email address")
+export type SendVerificationEmailInput = z.infer<typeof sendVerificationEmailSchema>
+
+export const verifyVerificationCodeSchema = z.object({
+  email: z.email("Invalid email address"),
+  code: z.string().length(6, "Verification code must be 6 characters")
+})
+export type VerifyVerificationCodeInput = z.infer<typeof verifyVerificationCodeSchema>
+
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 
 export const forgotPasswordSchema = z.object({
