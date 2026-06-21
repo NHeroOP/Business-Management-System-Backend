@@ -43,6 +43,24 @@ registry.registerPath({
 
 registry.registerPath({
   method: "get",
+  path: "/businesses/",
+  tags: ["Businesses"],
+  ...workspaceProtectedRoute,
+  summary: "Get user's businesses",
+  description: descriptions.workspaceAccess,
+
+  responses: {
+    200: {
+      description: "Businesses fetched successfully",
+    },
+    401: {
+      description: "Unauthorized",
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
   path: "/businesses/current",
   tags: ["Businesses"],
   ...workspaceProtectedRoute,

@@ -4,6 +4,8 @@ import {
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  verifyVerificationCodeSchema,
+  sendVerificationEmailSchema,
 } from "./auth.validation.js";
 import { authSecurity } from "@/docs/common.js";
 
@@ -86,6 +88,53 @@ registry.registerPath({
     },
     401: {
       description: "Invalid refresh token",
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/auth/verification-code/send",
+  tags: ["Auth"],
+  summary: "Send verification code",
+  description: "Sends a verification code to the user's email or phone number.",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: sendVerificationEmailSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "If email exists, verification code will be sent",
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/auth/verification-code/verify",
+  tags: ["Auth"],
+  summary: "Verify verification code",
+  description: "Verifies the verification code sent to the user's email or phone number.",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: verifyVerificationCodeSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Verification code verified successfully",
+    },
+    400: {
+      description: "Invalid verification code or email",
     },
   },
 });
