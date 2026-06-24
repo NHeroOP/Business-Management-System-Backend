@@ -45,7 +45,7 @@ registry.registerPath({
   method: "get",
   path: "/businesses/",
   tags: ["Businesses"],
-  ...workspaceProtectedRoute,
+  security: authSecurity,
   summary: "Get user's businesses",
   description: descriptions.workspaceAccess,
 
