@@ -55,14 +55,40 @@ src/modules/{domain}/
   {domain}.service.ts     Business logic, DB queries, external service calls
   {domain}.controller.ts  Parse request → call service → send ApiResponse
   {domain}.route.ts       Route definitions + middleware chain composition
+  {domain}.docs.ts        OpenAPI route registration via zod-to-openapi registry
 ```
 
 The `invoice` module has two additional files:
 
 - `invoice.helper.ts` — pure calculation helpers (total computation, item merging)
-- `invoice.delivery.ts` — email delivery via Resend, separated from core invoice logic
+- `invoice.delivery.ts` — PDF generation via Puppeteer + Handlebars, separated from core invoice logic
 
 Controllers call `schema.parse(req.body)` / `schema.parse(req.params)` directly — no separate validation middleware. Zod-inferred types (`z.infer<typeof schema>`) are the service input types, enforcing the controller → service contract at compile time.
+
+## OpenAPI Documentation
+
+`src/docs/` contains the OpenAPI generation infrastructure:
+
+```
+src/docs/
+  registry.ts       Singleton OpenAPIRegistry from @asteasolutions/zod-to-openapi
+  zod-openapi.ts    Extends zod with .openapi() method
+  common.ts         Shared OpenAPI components (error responses, pagination shapes, auth header)
+  openapi.ts        Collects all module .docs.ts registrations and generates the spec
+```
+
+Each module's `.docs.ts` file imports the shared `registry` and registers its routes and schemas. `src/docs/openapi.ts` imports all `.docs.ts` files and calls `OpenApiGeneratorV3` to produce the final spec.
+
+`app.ts` serves the spec at `/docs` via Scalar (`@scalar/express-api-reference`):
+
+```typescript
+app.use("/docs", apiReference({
+  theme: "bluePlanet",
+  spec: { content: openApiSpec() }
+}));
+```
+
+The Content-Security-Policy header is removed for `/docs` to allow Scalar's inline scripts to run.
 
 ## Error Handling
 
@@ -71,10 +97,14 @@ A global error handler in `src/shared/middlewares/errorHandler.ts` is registered
 ```typescript
 export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   if (error instanceof ZodError) {
-    return res.status(400).json({ success: false, message: "Validation failed", errors: error.issues });
+    return res.status(400).json({
+      success: false,
+      message: "Validation failed",
+      errors: error.issues.map(issue => ({ field: issue.path.join("."), message: issue.message })),
+    });
   }
   if (error instanceof ApiError) {
-    return res.status(error.statusCode).json({ success: false, message: error.message });
+    return res.status(error.statusCode).json({ success: false, message: error.message, errors: error.errors });
   }
   return res.status(500).json({ success: false, message: "Internal Server Error" });
 };
@@ -185,10 +215,10 @@ const counter = await InvoiceCounter.findOneAndUpdate(
   { returnDocument: "after", upsert: true }
 ).session(session);
 
-const invoiceNumber = `INV-${year}-${String(counter.sequence).padStart(4, "0")}`;
+const invoiceNumber = `${prefix}-${year}-${String(counter.sequence).padStart(4, "0")}`;
 ```
 
-Counter increment and `Invoice.create` happen in the same MongoDB session — both commit or both roll back.
+The prefix is read from `business.settings.invoicePrefix` (defaults to `"INV"`). Counter increment and `Invoice.create` happen in the same MongoDB session — both commit or both roll back.
 
 ### Price Snapshotting
 
@@ -238,8 +268,16 @@ const [totalClients, totalProducts, totalServices, totalInvoices, totalPayments,
     Invoice.countDocuments({ businessId, isArchived: false }),
     Payment.countDocuments({ businessId, isArchived: false }),
     Invoice.countDocuments({ businessId, isArchived: false, status: INVOICE_STATUS.PAID }),
-    Payment.aggregate([{ $match: { businessId, isArchived: false } }, { $group: { _id: null, totalRevenue: { $sum: "$amount" } } }]),
+    Payment.aggregate([
+      { $match: { businessId: new Types.ObjectId(businessId), isArchived: false } },
+      { $group: { _id: null, totalRevenue: { $sum: "$amount" } } },
+    ]),
   ]);
+
+return {
+  // ...
+  revenue: revenue[0]?.totalRevenue || 0,
+};
 ```
 
 ### Aggregation Pipeline Search
@@ -281,6 +319,7 @@ PAYMENT_STATUS   → SUCCESS | PENDING | FAILED
 
 VERIFICATION_EMAIL_TEMPLATE_ID   → Resend template for email verification
 INVOICE_SENT_EMAIL_TEMPLATE_ID   → Resend template for invoice delivery
+allowedInvoiceSortFields         → Allowed sort fields for invoice list queries
 ```
 
-`allowedInvoiceSortFields` is also exported from `consts.ts` to keep sort-field validation in one place.
+`modules/auth/auth.const.ts` holds auth-specific constants (cookie names, token options).

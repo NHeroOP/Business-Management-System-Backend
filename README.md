@@ -18,6 +18,7 @@ A multi-tenant REST API for invoicing, payments, and business operations. Models
 - **PDF generation** — Puppeteer + Handlebars invoice PDFs
 - **Auth** — JWT cookies, Google OAuth 2.0, SHA-256 hashed password reset tokens with 10-minute expiry
 - **Analytics** — business-level stats endpoint (clients, products, services, invoices, payments, revenue)
+- **OpenAPI docs** — auto-generated OpenAPI 3.0 spec via `@asteasolutions/zod-to-openapi`; interactive Scalar UI at `/docs`
 - **Env validation** — all required environment variables are validated at startup via Zod; the process exits immediately if any are missing
 
 ---
@@ -26,7 +27,7 @@ A multi-tenant REST API for invoicing, payments, and business operations. Models
 
 | Layer | Technology |
 |-------|-----------|
-| Runtime | Bun · Node.js 18+ · TypeScript 6 (strict, ESM) |
+| Runtime | Bun · Node.js 18+ · TypeScript (strict, ESM) |
 | Framework | Express 5 |
 | Database | MongoDB + Mongoose 9 |
 | Auth | JWT · Passport.js · Google OAuth 2.0 · bcrypt |
@@ -34,6 +35,7 @@ A multi-tenant REST API for invoicing, payments, and business operations. Models
 | Email | Resend |
 | PDF | Puppeteer (puppeteer-core) + Handlebars |
 | Validation | Zod 4 |
+| API docs | zod-to-openapi + Scalar |
 | Testing | Vitest · Supertest · mongodb-memory-server |
 
 ---
@@ -77,6 +79,7 @@ All business logic lives in the service layer. Controllers are thin wrappers: pa
 | Atomic payment + invoice closure | Two writes in one session — prevents split-brain between payment records and invoice status |
 | Header-based workspace selection | Flat routes; one authenticated session switches business context per-request without re-authentication |
 | `src/env.ts` Zod validation | Fail-fast at startup — missing or malformed env vars exit the process immediately with a clear error |
+| `src/docs/` OpenAPI generation | Zod schemas drive both runtime validation and API documentation — single source of truth |
 
 ---
 
@@ -111,20 +114,20 @@ The `Dockerfile` uses a multi-stage Bun build and installs Chromium for Puppetee
 MONGODB_URI=""              # Replica set URI — transactions require a replica set
 ACCESS_TOKEN_SECRET=""      # Min 32 characters
 REFRESH_TOKEN_SECRET=""     # Min 32 characters
+ACCESS_TOKEN_EXPIRY=""      # e.g. "1d"
+REFRESH_TOKEN_EXPIRY=""     # e.g. "15d"
+GOOGLE_CLIENT_ID=""
+GOOGLE_CLIENT_SECRET=""
 CLOUDINARY_CLOUD_NAME=""
 CLOUDINARY_API_KEY=""
 CLOUDINARY_API_SECRET=""
 RESEND_API_KEY=""
-GOOGLE_CLIENT_ID=""
-GOOGLE_CLIENT_SECRET=""
 
 # Optional (defaults shown)
-PORT=8000
+PORT=3000
 NODE_ENV=development
 BASE_URL=http://localhost:3000
 CORS_ORIGIN=*
-ACCESS_TOKEN_EXPIRY="1d"
-REFRESH_TOKEN_EXPIRY="15d"
 GOOGLE_CALLBACK_URL="http://localhost:3000/api/v1/auth/google/callback"
 PUPPETEER_EXECUTABLE_PATH="/usr/bin/chromium-browser"
 ```
@@ -154,6 +157,7 @@ x-business-id: <id>
 | `/api/v1/payments` | payment |
 | `/api/v1/analytics` | analytics |
 | `/api/v1/health` | health check |
+| `/docs` | interactive OpenAPI UI (Scalar) |
 
 See [docs/API.md](docs/API.md) for the full reference.
 

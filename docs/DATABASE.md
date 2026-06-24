@@ -34,6 +34,9 @@ One `User` can be a member of many `Business`es. Each `BusinessMember` record ca
 | `passwordResetTokenExpiry` | Date | 10-minute window |
 | `isVerified` | Boolean | Default `false` |
 | `lastLoginAt` | Date | Optional; updated on login |
+| `verificationCode` | String | Optional |
+| `verificationCodeExpiry` | Date | Optional |
+| `passwordChangedAt` | Date | Optional |
 | `metadata` | Mixed | Reserved for extensibility |
 | `isArchived` | Boolean | Soft delete |
 
@@ -76,14 +79,17 @@ Compound unique index: `{ businessId, userId }` — one membership record per us
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `businessId` | ObjectId | ref: Business, indexed |
-| `name` | String | Required; text-indexed |
-| `email` | String | — |
-| `phone` | String | — |
-| `address` | String | — |
-| `companyName` | String | — |
-| `gstNumber` | String | — |
-| `tags` | String[] | — |
+| `businessId` | ObjectId | ref: Business |
+| `name` | String | Required |
+| `email` | String | Optional |
+| `phone` | String | Optional |
+| `address` | String | Optional |
+| `companyName` | String | Optional |
+| `gstNumber` | String | Optional |
+| `notes` | String | Optional |
+| `tags` | String[] | Default `[]` |
+| `createdBy` | ObjectId | ref: User |
+| `metadata` | Mixed | Reserved for extensibility |
 | `isArchived` | Boolean | Soft delete |
 
 ---
@@ -95,10 +101,14 @@ Compound unique index: `{ businessId, userId }` — one membership record per us
 | `businessId` | ObjectId | ref: Business, indexed |
 | `name` | String | Required |
 | `type` | `PRODUCT \| SERVICE` | Default `PRODUCT` |
-| `description` | String | — |
-| `price` | Number | Required, non-negative |
+| `description` | String | Optional |
+| `price` | Number | Required, default `0` |
+| `stockQuantity` | Number | Default `0` |
 | `sku` | String | Sparse compound unique index `{ sku, businessId }` — per-business uniqueness |
+| `category` | String | Optional |
 | `image` | `{ url, publicId }` | Cloudinary reference |
+| `createdBy` | ObjectId | ref: User |
+| `metadata` | Mixed | Reserved for extensibility |
 | `isArchived` | Boolean | Soft delete |
 
 ---
@@ -107,7 +117,7 @@ Compound unique index: `{ businessId, userId }` — one membership record per us
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `invoiceNumber` | String | Unique; format `INV-YYYY-NNNN` |
+| `invoiceNumber` | String | Unique; format `{PREFIX}-YYYY-NNNN` |
 | `businessId` | ObjectId | ref: Business, indexed |
 | `client` | ObjectId | ref: Client, indexed |
 | `items` | `IInvoiceItem[]` | Embedded; price-snapshotted at creation |
@@ -116,7 +126,7 @@ Compound unique index: `{ businessId, userId }` — one membership record per us
 | `discount` | Number | Percentage (0–100); default `0` |
 | `total` | Number | `subtotal → apply discount → apply tax` |
 | `currency` | String | Default `"INR"` |
-| `status` | Enum | `DRAFT \| SENT \| PAID \| OVERDUE \| CANCELLED` |
+| `status` | Enum | `DRAFT \| SENT \| PAID \| OVERDUE \| CANCELLED`; indexed |
 | `issuedDate` | Date | Default: today at UTC midnight |
 | `dueDate` | Date | Optional |
 | `notes` | String | Optional |
@@ -178,15 +188,19 @@ Compound unique index: `{ businessId, year }`. Incremented via `findOneAndUpdate
 | `businessmembers` | `businessId` | Standard | Member listing |
 | `businessmembers` | `userId` | Standard | Workspace resolution |
 | `businessmembers` | `{ businessId, userId }` | Compound unique | One membership per user per business |
-| `clients` | `businessId` | Standard | Tenant scoping |
-| `clients` | `name` | Text | Search |
+| `clients` | `{ name (text), businessId, createdAt }` | Compound text | Tenant-scoped text search |
 | `products` | `businessId` | Standard | Tenant scoping |
+| `products` | `{ businessId, createdAt }` | Compound | Sorted listing |
 | `products` | `{ sku, businessId }` | Compound sparse unique | Per-business SKU uniqueness |
 | `invoices` | `invoiceNumber` | Unique | Number uniqueness |
+| `invoices` | `businessId` | Standard | Tenant scoping |
+| `invoices` | `client` | Standard | Client invoice lookup |
+| `invoices` | `status` | Standard | Status filtering |
 | `invoices` | `{ businessId, invoiceNumber }` | Compound unique | — |
-| `invoices` | `{ businessId, status, createdAt }` | Compound | Status filtering |
+| `invoices` | `{ businessId, status, createdAt }` | Compound | Status + date filtering |
 | `invoices` | `{ businessId, client, createdAt }` | Compound | Client invoice listing |
 | `invoicecounters` | `{ businessId, year }` | Compound unique | Sequence atomicity |
+| `payments` | `businessId` | Standard | Tenant scoping |
 | `payments` | `{ businessId, paidAt }` | Compound | Date range queries |
 | `payments` | `{ businessId, invoiceId }` | Compound | Invoice payment lookup |
 | `payments` | `{ businessId, status }` | Compound | Status filtering |
@@ -198,4 +212,5 @@ All collections share:
 - `isArchived: boolean` (default `false`) — soft delete; all queries filter `{ isArchived: false }`
 - `timestamps: true` — Mongoose adds `createdAt`, `updatedAt`
 - `businessId` on all tenant-scoped documents — every query includes tenant isolation at the DB layer
-- `metadata: Mixed` on User, Invoice, and Payment — reserved for future extensibility; not exposed in API responses
+- `metadata: Mixed` on User, Client, Product, Invoice, and Payment — reserved for future extensibility; not exposed in API responses
+- `createdBy: ObjectId` on Client, Product, Invoice, and Payment — audit trail

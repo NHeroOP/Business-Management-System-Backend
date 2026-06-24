@@ -4,8 +4,8 @@
 
 ### JWT
 
-- Access tokens: short-lived (default `1d`), configurable via `ACCESS_TOKEN_EXPIRY`
-- Refresh tokens: long-lived (default `15d`), stored in the database and validated on each refresh
+- Access tokens: configurable lifetime via `ACCESS_TOKEN_EXPIRY` (required — no default)
+- Refresh tokens: configurable lifetime via `REFRESH_TOKEN_EXPIRY` (required — no default), stored in the database and validated on each refresh
 - Both tokens issued as **httpOnly cookies** — inaccessible to client-side JavaScript
 - `Authorization: Bearer <token>` header also accepted for programmatic API access
 - On logout, the refresh token is cleared from the database (`$unset: { refreshToken: 1 }`)
@@ -82,7 +82,7 @@ User-supplied strings used in MongoDB `$regex` queries are escaped with a dedica
 ## File Uploads
 
 - Multer writes files to `public/temp/` temporarily; temp files are deleted after processing regardless of success or failure
-- Filenames use a `Date.now()` prefix to prevent concurrent uploads from colliding in the temp directory
+- Filenames use `Date.now() + "-" + Math.random()` to guarantee uniqueness and prevent concurrent uploads from colliding in the temp directory
 - Only the Cloudinary URL and `publicId` are stored in the database
 
 ---
@@ -105,6 +105,8 @@ User-supplied strings used in MongoDB `$regex` queries are escaped with a dedica
 MONGODB_URI              Replica set URI — transactions require a replica set
 ACCESS_TOKEN_SECRET      JWT signing key for access tokens (min 32 chars)
 REFRESH_TOKEN_SECRET     JWT signing key for refresh tokens (min 32 chars)
+ACCESS_TOKEN_EXPIRY      e.g. "1d"
+REFRESH_TOKEN_EXPIRY     e.g. "15d"
 CLOUDINARY_CLOUD_NAME
 CLOUDINARY_API_KEY
 CLOUDINARY_API_SECRET
@@ -116,12 +118,10 @@ GOOGLE_CLIENT_SECRET
 ### Optional (defaults shown)
 
 ```
-PORT=3000
+PORT=8000
 NODE_ENV=development
 BASE_URL=http://localhost:3000
 CORS_ORIGIN=*
-ACCESS_TOKEN_EXPIRY=1d
-REFRESH_TOKEN_EXPIRY=15d
 GOOGLE_CALLBACK_URL=http://localhost:3000/api/v1/auth/google/callback
 PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ```

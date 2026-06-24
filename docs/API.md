@@ -1,6 +1,6 @@
 # API Reference
 
-All endpoints are prefixed with `/api/v1`.
+All endpoints are prefixed with `/api/v1`. Interactive OpenAPI documentation is available at `/docs` (Scalar UI).
 
 ## Response Envelope
 
@@ -74,10 +74,11 @@ All routes require `verifyJWT`. Uses `:businessId` path parameter — no `x-busi
 
 | Method | Path | Role | Notes |
 |--------|------|------|-------|
+| GET | `/` | JWT | List all businesses the current user is a member of |
 | POST | `/` | JWT | `multipart/form-data`; field `logoUrl`; auto-creates `OWNER` membership |
-| GET | `/:businessId` | JWT | — |
-| PATCH | `/:businessId` | OWNER | Update name / settings |
-| PATCH | `/:businessId/logo` | OWNER | `multipart/form-data`; field `logoUrl` |
+| GET | `/current` | JWT + workspace | Get current workspace business (requires `x-business-id`) |
+| PATCH | `/current` | OWNER | Update name / settings |
+| PATCH | `/current/logo` | OWNER | `multipart/form-data`; field `logoUrl` |
 
 ---
 
@@ -182,6 +183,8 @@ All routes require `verifyJWT + resolveWorkspace + requireRole(ALL)`.
 
 Sending an invoice (`status: "SENT"`) triggers a client notification email via Resend. The canonical way to mark an invoice `PAID` is via `POST /payments` — this atomically creates the payment record and closes the invoice in a single transaction.
 
+The invoice number format is `{PREFIX}-{YEAR}-{SEQ:0000}` where `PREFIX` comes from `business.settings.invoicePrefix` (defaults to `"INV"`).
+
 ---
 
 ## Payments — `/api/v1/payments`
@@ -234,6 +237,8 @@ Requires `verifyJWT + resolveWorkspace + requireRole(OWNER, ADMIN)`.
 }
 ```
 
+`revenue` is the sum of all non-archived payment amounts for the business. Products and services are counted separately (`type: PRODUCT` vs `type: SERVICE`).
+
 ---
 
 ## Health Check
@@ -241,6 +246,14 @@ Requires `verifyJWT + resolveWorkspace + requireRole(OWNER, ADMIN)`.
 | Method | Path | Notes |
 |--------|------|-------|
 | GET | `/api/v1/health` | No auth required |
+
+---
+
+## OpenAPI Documentation
+
+| Path | Notes |
+|------|-------|
+| `GET /docs` | Interactive Scalar UI; spec auto-generated from Zod schemas via `@asteasolutions/zod-to-openapi` |
 
 ---
 
