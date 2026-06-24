@@ -47,7 +47,6 @@ registry.registerPath({
   tags: ["Businesses"],
   security: authSecurity,
   summary: "Get user's businesses",
-  description: descriptions.workspaceAccess,
 
   responses: {
     200: {

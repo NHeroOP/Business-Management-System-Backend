@@ -28,12 +28,12 @@ export const openApiSpec = () => {
 
     servers: [
       {
-        url: "http://localhost:3000/api/v1",
-        description: "Local Development",
+        url: "https://bms-api.nhero.xyz/api/v1",
+        description: "Production Server",
       },
       {
-        url: "https://nhero-business-management.up.railway.app/api/v1",
-        description: "Production Server",
+        url: "http://localhost:3000/api/v1",
+        description: "Local Development",
       }
     ],
   });
