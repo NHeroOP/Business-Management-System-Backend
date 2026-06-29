@@ -59,12 +59,12 @@ ENV NODE_ENV=production
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 # copy production dependencies and source code into final image
-COPY --from=install /temp/prod/node_modules node_modules
-COPY --from=prerelease /usr/src/app/package.json .
-COPY --from=prerelease /usr/src/app/dist ./dist
-COPY --from=prerelease /usr/src/app/public ./public
-COPY --from=prerelease \
-/usr/src/app/src/modules/invoice/templates \
+COPY --chown=bun:bun --from=install /temp/prod/node_modules ./node_modules
+COPY --chown=bun:bun --from=prerelease /usr/src/app/package.json .
+COPY --chown=bun:bun --from=prerelease /usr/src/app/dist ./dist
+COPY --chown=bun:bun --from=prerelease /usr/src/app/public ./public
+COPY --chown=bun:bun --from=prerelease \
+  /usr/src/app/src/modules/invoice/templates \
   ./dist/src/modules/invoice/templates
 
 
