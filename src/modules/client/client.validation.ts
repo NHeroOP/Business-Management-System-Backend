@@ -14,8 +14,8 @@ export const createClientSchema = z.object({
 export type CreateClientInput = z.infer<typeof createClientSchema>;
 
 export const getClientsSchema = z.object({
-  page: z.number().optional().default(1),
-  limit: z.number().optional().default(10),
+  page: z.coerce.number().optional().default(1),
+  limit: z.coerce.number().optional().default(10),
   search: z.string().optional().describe("Search term to filter clients by name or email")  ,
   sortBy: z.enum(["name", "createdAt"]).optional()
 });

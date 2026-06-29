@@ -17,12 +17,12 @@ export const getPaymentsSchema = z.object({
   invoiceId: z.string().length(24, "Invalid invoice ID").optional(),
   status: z.enum(Object.values(PAYMENT_STATUS)).optional(),
   method: z.enum(Object.values(PAYMENT_METHOD)).optional(),
-  fromDate: z.date().optional(),
-  toDate: z.date().optional(),
+  fromDate: z.coerce.date().optional(),
+  toDate: z.coerce.date().optional(),
   sortBy: z.string().optional(),
   sortOrder: z.union([z.literal(1), z.literal(-1)]).optional(),
-  page: z.number().int().positive("Page must be a positive integer").optional(),
-  limit: z.number().int().positive("Limit must be a positive integer").optional(),
+  page: z.coerce.number().int().positive("Page must be a positive integer").optional(),
+  limit: z.coerce.number().int().positive("Limit must be a positive integer").optional(),
 });
 
 export type FindPaymentsInput = z.infer<typeof getPaymentsSchema>;

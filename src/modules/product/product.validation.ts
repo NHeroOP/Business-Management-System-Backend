@@ -28,8 +28,8 @@ export const createProductRequestSchema = createProductSchema.extend({
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 
 export const FindProductsQuerySchema = z.object({
-  page: z.number().default(1).optional(),
-  limit: z.number().default(10).optional(),
+  page: z.coerce.number().default(1).optional(),
+  limit: z.coerce.number().default(10).optional(),
   search: z.string().optional(),
   sortBy: z.string().optional(),
 });

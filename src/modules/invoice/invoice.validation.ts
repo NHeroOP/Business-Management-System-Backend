@@ -35,8 +35,8 @@ export const getInvoicesSchema = z.object({
   name: z.string().optional(),
   sortBy: z.enum(allowedInvoiceSortFields).optional(),
   sortOrder: z.union([z.literal(1), z.literal(-1)]).optional(),
-  page: z.number().positive().optional(),
-  limit: z.number().positive().optional(),
+  page: z.coerce.number().positive().optional(),
+  limit: z.coerce.number().positive().optional(),
 });
 
 export type FindInvoicesInput = z.infer<typeof getInvoicesSchema>;
