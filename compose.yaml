@@ -1,6 +1,6 @@
 services:
   api:
-    image: ghcr.io/NHeroOP/business-management-system-backend:latest
+    image: ghcr.io/nheroop/business-management-system-backend:latest
     restart: unless-stopped
 
     env_file:
