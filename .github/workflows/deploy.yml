@@ -15,68 +15,69 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: nheroop/business-management-system-backend
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=latest
-            type=sha
-
-      - name: Build & Push Docker image
+      - name: Build & Push
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ghcr.io/${{ env.IMAGE_NAME }}:latest
+            ghcr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       - name: Configure SSH
         run: |
           mkdir -p ~/.ssh
 
-          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/github-actions
+          chmod 600 ~/.ssh/github-actions
 
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy
         run: |
           ssh \
-            -i ~/.ssh/id_ed25519 \
+            -i ~/.ssh/github-actions \
             -p ${{ secrets.SSH_PORT }} \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
 
           set -euxo pipefail
 
-          cd repos/Business-Management-System-Backend
+          cd ~/repos/Business-Management-System-Backend
+
+          echo "Current commit:"
+          git rev-parse HEAD
+
+          git fetch origin
+          git reset --hard origin/main
+
+          echo "Updated commit:"
+          git rev-parse HEAD
 
           docker compose pull
 
-          docker compose up -d --remove-orphans
+          docker compose up -d \
+            --force-recreate \
+            --remove-orphans
 
           docker image prune -f
 
           docker compose ps
-
-          echo "Deployment successful"
 
           EOF
