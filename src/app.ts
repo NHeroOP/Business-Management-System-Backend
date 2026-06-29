@@ -55,7 +55,7 @@ import analyticsRouter from "./modules/analytics/analytics.route.js";
 
 
 
-app.use("/", (_req, res) => {
+app.get("/", (_req, res) => {
   res.redirect("/docs");
 });
 
