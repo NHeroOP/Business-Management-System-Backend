@@ -19,7 +19,7 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
 
           script: |
-            cd /repos/Business-Management-System-Backend
+            cd repos/Business-Management-System-Backend
 
             git fetch origin
             git reset --hard origin/main
