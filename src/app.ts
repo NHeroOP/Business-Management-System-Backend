@@ -54,6 +54,11 @@ import businessMemberRouter from "./modules/business-member/businessMember.route
 import analyticsRouter from "./modules/analytics/analytics.route.js";
 
 
+
+app.use("/", (_req, res) => {
+  res.redirect("/docs");
+});
+
 app.use("/docs", (_req, res, next) => {
   res.removeHeader("Content-Security-Policy");
   next();
